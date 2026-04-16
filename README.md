@@ -56,3 +56,4 @@ $HOME/local/sys_images
 $HOME/local/wallpapers
 ```
 Inside each one there could be any `VIDEOS` and or `GIFS` directory for the `SetDescriptorLLW` script which should be also placed in the *wallpapers* directory
+That script is intended to be used as the *trigger*  for the wallpaper manager, performs a search and shuffles to initiate a random wallpaper. This script is nor needed nor important but an utility.
