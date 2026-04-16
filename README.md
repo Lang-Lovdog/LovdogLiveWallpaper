@@ -55,3 +55,4 @@ $HOME/.WallPapers
 $HOME/local/sys_images
 $HOME/local/wallpapers
 ```
+Inside each one there could be any `VIDEOS` and or `GIFS` directory for the `SetDescriptorLLW` script which should be also placed in the *wallpapers* directory

@@ -1,0 +1,31 @@
+#!/bin/bash
+
+if [ $# -gt 0 ]; then
+  descr=$1
+  descr=${descr//\//}
+  decr="$(cat Descriptors.maww | grep $descr | head -n1 | awk '{print $2}')"
+  echo "Descriptor: $decr"
+else
+  find_args=()
+  excext=(txt liotree)
+  for ext in "${excext[@]}"; do
+    find_args+=( -not -iname "*.${ext}" )
+  done
+  # Random number between 0 and 1
+  case "$((RANDOM % 3))" in
+    "0")
+      decr="$(shuf -n1 Descriptors.maww | awk '{print $2}')"
+      flags="-f Descriptors.maww -i"
+      ;;
+    "1")
+      decr="$(find ./GIFS -maxdepth 1 -type f -print0 "${find_args[@]}" | shuf -z -n1 | tr -d '\0')"
+      flags="-v"
+    ;;
+    "2")
+      decr="$(find ./VIDEOS -maxdepth 1 -type f -print0 "${find_args[@]}" | shuf -z -n1 | tr -d '\0')"
+      flags="-v"
+    ;;
+  esac
+  echo "Descriptor: $decr"
+fi
+llw --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>&1 &
