@@ -55,6 +55,7 @@ void routine_dir_slide(WallpaperConfig& config, cv::VideoCapture& cap) {
     // OpenCV también puede abrir directorios de imágenes como secuencias
     cap.open(config.path + "/*.jpg"); 
 }
+
 bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap) {
     switch (config.in_type) {
         case TYPE_VIDEO:

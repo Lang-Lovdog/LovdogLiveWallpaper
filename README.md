@@ -45,3 +45,13 @@ mp4
 ```
 
 About length of the video, I didn't used videos larger than 2min., so larger ones may result on further RAM usage, **be careful**
+
+### Important dirs
+
+I must say there's **no** parser for any **config** file. But any descriptor file should be placed at (precedence order):
+```
+$HOME/.SYS_IMAGES
+$HOME/.WallPapers
+$HOME/local/sys_images
+$HOME/local/wallpapers
+```
