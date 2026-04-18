@@ -27,7 +27,7 @@ llw -f | --descriptor-file <descriptor.maww> -i <wallpaper id>
 llw -s | --send-stop
 llw -F | --bg-fill
 llw -S | --bg-stretch
-llw -c | --bg-center
+llw -C | --bg-center
 llw -d | --slideshow <directory>
 llw -D | --slideshow-delay
 llw -T | --transition-delay
