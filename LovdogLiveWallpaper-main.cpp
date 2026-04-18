@@ -23,7 +23,8 @@ int main(int argc, char** argv) {
     // Limpieza de instancia previa
     if (options.stop_previous) handle_stop_previous();
     cv::VideoCapture cap;
-    if (!prepare_capture(config, cap)) {
+    slideshow_paths slideshow_list;
+    if (!prepare_capture(config, cap, slideshow_list)) {
         std::cerr << "Error en la rutina de adquisición." << std::endl;
         return -1;
     }
@@ -49,7 +50,7 @@ int main(int argc, char** argv) {
 
     adjust_render_dims(config,screen);
     std::cout << "Iniciando con "<< config.rn_width << " x " << config.rn_height << " pixeles" << std::endl;
-    loop_normal(config, cap, screen, conn, gc, pmap);
+    start_loop(config, slideshow_list, cap, screen, conn, gc, pmap);
 
     // Limpieza al salir
     std::cout << "Limpiando recursos..." << std::endl;

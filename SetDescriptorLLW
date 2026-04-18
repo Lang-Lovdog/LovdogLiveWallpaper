@@ -1,5 +1,11 @@
 #!/bin/bash
 
+cd $LIODIR_IMAGES
+hsetroot -solid '#000000' 
+
+llw --send-stop
+sleep 0.4
+
 if [ $# -gt 0 ]; then
   descr=$1
   descr=${descr//\//}
@@ -28,4 +34,4 @@ else
   esac
   echo "Descriptor: $decr"
 fi
-llw --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>&1 &
+llw -F --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>&1 &

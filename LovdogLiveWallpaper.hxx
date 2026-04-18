@@ -35,17 +35,19 @@ struct RuntimeOptions {
 
 struct WallpaperConfig {
     std::string  path;
-    int          delay_ms     = 33   ; // Default ~30fps
-    int          width        = 1920 ;
-    int          height       = 1080 ;
-    int          rn_width     = 1920 ;
-    int          rn_height    = 1080 ;
-    int          x_start      = 0    ;
-    int          y_start      = 0    ;
-    int          rn_type      = SCREEEN_FILL;
-    size_t       in_type      = TYPE_NONE;
+    int          delay_ms          = 33   ;
+    int          transition_delay  = 5000 ;
+    int          width             = 1920 ;
+    int          height            = 1080 ;
+    int          rn_width          = 1920 ;
+    int          rn_height         = 1080 ;
+    int          x_start           = 0    ;
+    int          y_start           = 0    ;
+    int          rn_type           = SCREEEN_FILL;
+    size_t       in_type           = TYPE_NONE;
 };
 
+typedef std::vector<std::string> slideshow_paths;
 
 std::string find_wallpaper_path(const std::string& name);
 void signal_handler(int sig);
@@ -57,7 +59,18 @@ void update_root_atoms(xcb_connection_t* conn, xcb_window_t root, xcb_pixmap_t p
 void routine_dir_slide(WallpaperConfig& config, cv::VideoCapture& cap);
 void routine_video_capture(WallpaperConfig& config, cv::VideoCapture& cap);
 void routine_descriptor_dir(const std::string& desc_file, const std::string& id, WallpaperConfig& config, cv::VideoCapture& cap);
-bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap);
+bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap, slideshow_paths &slideshow_list);
 void adjust_render_dims(WallpaperConfig& config, const xcb_screen_t* screen);
 void loop_normal(WallpaperConfig& config, cv::VideoCapture& cap, xcb_screen_t* screen, xcb_connection_t* conn, xcb_gcontext_t& gc, xcb_pixmap_t& pmap);
+void loop_slideshow(WallpaperConfig& config, slideshow_paths& cap, xcb_screen_t* screen, xcb_connection_t* conn, xcb_gcontext_t& gc, xcb_pixmap_t& pmap);
+void intelligent_image_resize_keep_ratio(cv::Mat& img, int width, int height);
+void start_loop(
+        WallpaperConfig  &config,
+        slideshow_paths  &slideshow_list,
+        cv::VideoCapture &cap,
+        xcb_screen_t     *screen,
+        xcb_connection_t *conn,
+        xcb_gcontext_t   &gc,
+        xcb_pixmap_t     &pmap
+);
 

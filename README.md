@@ -28,6 +28,9 @@ llw -s | --send-stop
 llw -F | --bg-fill
 llw -S | --bg-stretch
 llw -c | --bg-center
+llw -d | --slideshow <directory>
+llw -D | --slideshow-delay
+llw -T | --transition-delay
 ```
 
 The `--send-stop` flag is used to stop the wallpaper. This is to avoid memory leaks due to the frame load.
@@ -35,6 +38,9 @@ The `--send-stop` flag is used to stop the wallpaper. This is to avoid memory le
 Descriptor files corresponds to files created by the script `add_animated_wallpaper` which used `ffmpeg` or `ImageMagick` to extract video and gif files into directories for use with a modified version of `maww`.
 
 Each descriptor is given by the syntax `-d id -s period :  width x height` The period is given by 1000/fps. As an example:
+
+The `slideshow` does not respond yet to background styles options `fill`, `center` and `stretch`. The current version does a *fill*.
+
 ```
 -d Asciiquarium -s 100 :  640 x 360
 ```
@@ -78,7 +84,7 @@ Since I'm in masters studies toward research curriculum I cannot assure I'll add
 
 [ x ] Add screen pixmap resizing options
 [  ] Add CAVA-like visualization
-[  ] Add slideshow
+[ x ] Add slideshow
 [  ] Add system info monitoring
 
 
@@ -88,3 +94,4 @@ As the obsessive wolf I am, and with the high amount of ideas here's a list of m
  - Pop up notifications
  - Add mpv-like yt-dlp support for online videos
  - Add sound support if music/fx synced with wallpaper
+

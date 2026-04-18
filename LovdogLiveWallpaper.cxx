@@ -53,21 +53,23 @@ void help(void){
 // En LovdogLiveWallpaper.cxx 
 void parse_args(int argc, char** argv, WallpaperConfig& config) {
     static struct option long_options[] = {
-        {"send-stop"      , no_argument      , 0, 's'},
-        {"descriptor-file", required_argument, 0, 'f'},
-        {"descriptor-id"  , required_argument, 0, 'i'},
-        {"video"          , required_argument, 0, 'v'},
-        {"bg-fill"        , no_argument      , 0, 'F'},
-        {"bg-center"      , no_argument      , 0, 'C'},
-        {"bg-stretch"     , no_argument      , 0, 'S'},
-        {"slideshow"      , required_argument, 0, 'd'}, // Sugerencia para TYPE_DIR_SLIDE
-        {"help"           , no_argument      , 0, 'h'}, // Sugerencia para TYPE_DIR_SLIDE
+        {"send-stop"       , no_argument      , 0, 's'},
+        {"descriptor-file" , required_argument, 0, 'f'},
+        {"descriptor-id"   , required_argument, 0, 'i'},
+        {"video"           , required_argument, 0, 'v'},
+        {"bg-fill"         , no_argument      , 0, 'F'},
+        {"bg-center"       , no_argument      , 0, 'C'},
+        {"bg-stretch"      , no_argument      , 0, 'S'},
+        {"slideshow"       , required_argument, 0, 'd'},
+        {"slideshow-delay" , required_argument, 0, 'D'},
+        {"transition-delay", required_argument, 0, 'T'},
+        {"help"            , no_argument      , 0, 'h'},
         {0, 0, 0, 0}
     };
 
     int opt;
     // Agregamos 'v:' y 'd:' a la cadena de opciones 
-    while ((opt = getopt_long(argc, argv, "sf:i:v:d:FCSd:h", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "sf:i:v:d:FCSd:D:T:h", long_options, nullptr)) != -1) {
         switch (opt) {
             case 's': 
                 options.stop_previous = true; 
@@ -97,6 +99,11 @@ void parse_args(int argc, char** argv, WallpaperConfig& config) {
             case 'S':
                 config.rn_type = SCREEEN_STRETCH;
                 break;
+            case 'D':
+                config.delay_ms= atoi(optarg);
+                break;
+            case 'T':
+                config.transition_delay = atoi(optarg);
             case 'h':
                 help();
                 break;
@@ -130,6 +137,15 @@ bool load_descriptor(const std::string& file, const std::string& id, WallpaperCo
         }
     }
     return false;
+}
+
+void intelligent_image_resize_keep_ratio(cv::Mat& img, int width, int height) {
+    if (img.size().width > width || img.size().height > height) {
+        double ratio = std::min((double)width / img.size().width, (double)height / img.size().height);
+        width = static_cast<int>(img.size().width * ratio);
+        height = static_cast<int>(img.size().height * ratio);
+        cv::resize(img, img, cv::Size(width, height));
+    }
 }
 
 void adjust_render_dims(WallpaperConfig& config,const xcb_screen_t* screen){

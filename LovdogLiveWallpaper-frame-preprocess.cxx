@@ -56,10 +56,11 @@ void routine_dir_slide(WallpaperConfig& config, cv::VideoCapture& cap) {
     cap.open(config.path + "/*.jpg"); 
 }
 
-bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap) {
+bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap, slideshow_paths &slideshow_list) {
     switch (config.in_type) {
         case TYPE_VIDEO:
         case TYPE_GIF:
+            std::cout<< "Video/Gif: " << config.path << std::endl;
             cap.open(config.path);
             if (cap.isOpened()) {
                 double fps   = cap.get(cv::CAP_PROP_FPS);
@@ -70,6 +71,7 @@ bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap) {
             break;
 
         case TYPE_DESCRIPTOR:
+            std::cout << "Descriptor: " << config.path << std::endl;
             // 1. Cargamos delay y metadatos desde el .maww usando el ID
             if (load_descriptor(options.descriptor_file, options.target_id, config)) {
                 
@@ -109,8 +111,11 @@ bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap) {
             break;
 
         case TYPE_DIR_SLIDE:
-            config.delay_ms = 5000; // 5 segundos para presentación
-            cap.open(config.path + "/%d.jpg"); 
+            std::cout << "Slide Mode" << std::endl;
+            if(config.delay_ms==33) config.delay_ms=5000;
+            for (const auto& entry : std::filesystem::directory_iterator(config.path))
+                if (entry.is_regular_file()) slideshow_list.push_back(entry.path().string());
+            return !slideshow_list.empty();
             break;
 
         default:
