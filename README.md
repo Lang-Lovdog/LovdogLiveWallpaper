@@ -71,3 +71,20 @@ The `make install` has sudo in it, so no need to `sudo make install` avoiding po
 make build
 make install
 ```
+
+### TODO
+
+Since I'm in masters studies toward research curriculum I cannot assure I'll add every element in todo. At least, not as fast as I want.
+
+[ x ] Add screen pixmap resizing options
+[  ] Add CAVA-like visualization
+[  ] Add slideshow
+[  ] Add system info monitoring
+
+
+As the obsessive wolf I am, and with the high amount of ideas here's a list of maybes I got in my head:
+ - Make LovdogWallpaperManager
+ - Add extras like power management
+ - Pop up notifications
+ - Add mpv-like yt-dlp support for online videos
+ - Add sound support if music/fx synced with wallpaper
