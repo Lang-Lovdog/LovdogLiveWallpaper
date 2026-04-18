@@ -38,36 +38,23 @@ void signal_handler(int sig) {
     keep_running = false;
 }
 
-void help(void){
-    std::cout << "Usage: ./LovdogLiveWallpaper [options]" << std::endl;
-    std::cout << "Options:" << std::endl;
-    std::cout << "  -s, --send-stop" << std::endl;
-    std::cout << "  -f, --descriptor-file <file>" << std::endl;
-    std::cout << "  -i, --descriptor-id <id>" << std::endl;
-    std::cout << "  -v, --video <video/gif file>" << std::endl;
-    std::cout << "  -F, --bg-fill" << std::endl;
-    std::cout << "  -C, --bg-center" << std::endl;
-    std::cout << "  -S, --bg-stretch" << std::endl;
-}
-
 // En LovdogLiveWallpaper.cxx 
 void parse_args(int argc, char** argv, WallpaperConfig& config) {
     static struct option long_options[] = {
-        {"send-stop"      , no_argument      , 0, 's'},
+        {"send-stop",       no_argument,       0, 's'},
         {"descriptor-file", required_argument, 0, 'f'},
-        {"descriptor-id"  , required_argument, 0, 'i'},
-        {"video"          , required_argument, 0, 'v'},
-        {"bg-fill"        , no_argument      , 0, 'F'},
-        {"bg-center"      , no_argument      , 0, 'C'},
-        {"bg-stretch"     , no_argument      , 0, 'S'},
-        {"slideshow"      , required_argument, 0, 'd'}, // Sugerencia para TYPE_DIR_SLIDE
-        {"help"           , no_argument      , 0, 'h'}, // Sugerencia para TYPE_DIR_SLIDE
+        {"descriptor-id",   required_argument, 0, 'i'},
+        {"video",           required_argument, 0, 'v'},
+        {"bg-fill",         required_argument, 0, 'F'},
+        {"bg-center",       required_argument, 0, 'C'},
+        {"bg-stretch",      required_argument, 0, 'S'},
+        {"slideshow",       required_argument, 0, 'd'}, // Sugerencia para TYPE_DIR_SLIDE
         {0, 0, 0, 0}
     };
 
     int opt;
     // Agregamos 'v:' y 'd:' a la cadena de opciones 
-    while ((opt = getopt_long(argc, argv, "sf:i:v:d:FCSd:h", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "sf:i:v:d:", long_options, nullptr)) != -1) {
         switch (opt) {
             case 's': 
                 options.stop_previous = true; 
@@ -96,9 +83,6 @@ void parse_args(int argc, char** argv, WallpaperConfig& config) {
                 break;
             case 'S':
                 config.rn_type = SCREEEN_STRETCH;
-                break;
-            case 'h':
-                help();
                 break;
         }
     }
@@ -134,39 +118,29 @@ bool load_descriptor(const std::string& file, const std::string& id, WallpaperCo
 
 void adjust_render_dims(WallpaperConfig& config,const xcb_screen_t* screen){
     switch(config.rn_type){
-        case SCREEEN_FILL:{
+        SCREEEN_FILL:
             int  xwidth=0, xheight=0;
-            double ratio;
-
-            std::cout << "Dims original: " << config.width << "x" << config.height << std::endl;
-            if(screen->width_in_pixels  < screen->height_in_pixels){ // Si el ancho es el más corto, procedemos a partir del alto
-                std::cout << "Ancho" << std::endl;
-                ratio   = (double)config.height/config.width;
-                xwidth  = screen->width_in_pixels           ;
-                xheight = xwidth * ratio                    ;
-                config.y_start = (screen->height_in_pixels - xheight) / 2;
+            if(config.width  < config.height){ // Si el ancho es el más corto, procedemos a partir del alto
+                xheight = screen->width_in_pixels;
+                xwidth  = screen->width_in_pixels*config.height/config.width;
             }else{
-                std::cout << "Alto" << config.width << std::endl;
-                ratio   = (double)config.width/config.height;
-                xheight = screen->height_in_pixels          ;
-                xwidth  = xheight * ratio                   ;
-                config.x_start = (screen->width_in_pixels - xwidth) / 2;
+                xwidth  = screen->height_in_pixels;
+                xheight = screen->height_in_pixels*config.width/config.height;
             }
-            std::cout << "Ratio: " << ratio << std::endl;
             config.rn_height = xheight;
-            config.rn_width  = xwidth ;
-            break;
-        }
-        case SCREEEN_CENTER:
+            config.rn_width  = xwidth;
+        break;
+        SCREEEN_CENTER:
             config.rn_height = config.width;
             config.rn_width  = config.height;
-            config.y_start = (screen->height_in_pixels - config.rn_height) / 2;
-            config.x_start = (screen->width_in_pixels  - config.rn_width ) / 2;
-            break;
-        case SCREEEN_STRETCH:
+        break;
+        SCREEEN_STRETCH:
             config.rn_height = screen->height_in_pixels;
             config.rn_width  = screen->width_in_pixels;
-            break;
+        break;
+        default:
+        std::cerr<< "FILL por defecto"<<std::endl;
+        break;
     }
 }
 

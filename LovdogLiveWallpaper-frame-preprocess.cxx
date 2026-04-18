@@ -62,7 +62,9 @@ bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap) {
         case TYPE_GIF:
             cap.open(config.path);
             if (cap.isOpened()) {
-                double fps = cap.get(cv::CAP_PROP_FPS);
+                double fps   = cap.get(cv::CAP_PROP_FPS);
+                config.width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+                config.height= cap.get(cv::CAP_PROP_FRAME_HEIGHT);
                 if (fps > 0) config.delay_ms = static_cast<int>(1000.0 / fps);
             }
             break;

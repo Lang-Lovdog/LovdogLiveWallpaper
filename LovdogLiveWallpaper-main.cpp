@@ -15,8 +15,6 @@ extern bool keep_running;
 
 extern RuntimeOptions options;
 
-namespace fs = std::filesystem;
-
 int main(int argc, char** argv) {
     WallpaperConfig config;
     // 1. Parsear argumentos
@@ -49,29 +47,9 @@ int main(int argc, char** argv) {
     xcb_gcontext_t gc = xcb_generate_id(conn);
     xcb_create_gc(conn, gc, pmap, 0, NULL);
 
-    cv::Mat frame, bgra_frame;
-    
-    // Bucle principal controlado por la señal
-    while (keep_running) {
-        cap >> frame;
-        if (frame.empty()) {
-            cap.set(cv::CAP_PROP_POS_FRAMES, 0);
-            continue;
-        }
-
-        cv::resize(frame, frame, cv::Size(screen->width_in_pixels, screen->height_in_pixels));
-        cv::cvtColor(frame, bgra_frame, cv::COLOR_BGR2BGRA);
-
-        xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
-                      screen->width_in_pixels, screen->height_in_pixels,
-                      0, 0, 0, screen->root_depth,
-                      bgra_frame.total() * bgra_frame.elemSize(), bgra_frame.data);
-
-        update_root_atoms(conn, screen->root, pmap);
-
-        // Usar el delay del descriptor si existe
-        usleep(config.delay_ms * 1000); 
-    }
+    adjust_render_dims(config,screen);
+    std::cout << "Iniciando con "<< config.rn_width << " x " << config.rn_height << " pixeles" << std::endl;
+    loop_normal(config, cap, screen, conn, gc, pmap);
 
     // Limpieza al salir
     std::cout << "Limpiando recursos..." << std::endl;

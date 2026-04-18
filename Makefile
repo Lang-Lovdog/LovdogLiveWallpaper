@@ -1,7 +1,8 @@
 OCV_FLAGS=`pkg-config --cflags --libs xcb opencv4`
+FILES=LovdogLiveWallpaper.cxx LovdogLiveWallpaper-frame-preprocess.cxx LovdogLiveWallpaper-loops.cxx LovdogLiveWallpaper-main.cpp 
 
 build:
-	g++ LovdogLiveWallpaper.cxx LovdogLiveWallpaper-frame-preprocess.cxx LovdogLiveWallpaper-main.cpp -o llw $(OCV_FLAGS) -Wall
+	g++ $(FILES) -o llw $(OCV_FLAGS) -Wall
 
 install:
 	sudo cp llw /usr/local/bin

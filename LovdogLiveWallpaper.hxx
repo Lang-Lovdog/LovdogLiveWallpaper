@@ -18,11 +18,18 @@ enum InputType : size_t {
     TYPE_DIR_SLIDE   = 0b0001
 };
 
+enum RenderType : char {
+    SCREEEN_FILL    = 0b1000,
+    SCREEEN_CENTER  = 0b0100,
+    SCREEEN_STRETCH = 0b0010,
+};
+
 struct RuntimeOptions {
     bool        stop_previous = false;
     std::string descriptor_file;
     std::string target_id;
     std::string video_path;
+    char        type;
     // ... otros flags
 };
 
@@ -31,6 +38,11 @@ struct WallpaperConfig {
     int          delay_ms     = 33   ; // Default ~30fps
     int          width        = 1920 ;
     int          height       = 1080 ;
+    int          rn_width     = 1920 ;
+    int          rn_height    = 1080 ;
+    int          x_start      = 0    ;
+    int          y_start      = 0    ;
+    int          rn_type      = SCREEEN_FILL;
     size_t       in_type      = TYPE_NONE;
 };
 
@@ -46,4 +58,6 @@ void routine_dir_slide(WallpaperConfig& config, cv::VideoCapture& cap);
 void routine_video_capture(WallpaperConfig& config, cv::VideoCapture& cap);
 void routine_descriptor_dir(const std::string& desc_file, const std::string& id, WallpaperConfig& config, cv::VideoCapture& cap);
 bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap);
+void adjust_render_dims(WallpaperConfig& config, const xcb_screen_t* screen);
+void loop_normal(WallpaperConfig& config, cv::VideoCapture& cap, xcb_screen_t* screen, xcb_connection_t* conn, xcb_gcontext_t& gc, xcb_pixmap_t& pmap);
 

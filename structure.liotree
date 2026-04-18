@@ -3,6 +3,7 @@
 |-- LovdogLiveWallpaper.hxx > Cabecera del programa ||
 |-- LovdogLiveWallpaper.cxx > Definiciones de funciones del programa ||
 |-- LovdogLiveWallpaper-frame-preprocess.cxx > Definiciones de funciones del programa ||
+|-- LovdogLiveWallpaper-loops.cxx > Definiciones de funciones del programa ||
 |-- LovdogLiveWallpaper-main.cpp > Código fuente principal ||
 |-- Makefile > Para make build, make install ||
 |-- README.md > Pequeña descripción ||

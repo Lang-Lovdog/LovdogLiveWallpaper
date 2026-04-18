@@ -25,6 +25,9 @@ To compile use `make build`
 llw -v | --video <video path>
 llw -f | --descriptor-file <descriptor.maww> -i <wallpaper id>
 llw -s | --send-stop
+llw -F | --bg-fill
+llw -S | --bg-stretch
+llw -c | --bg-center
 ```
 
 The `--send-stop` flag is used to stop the wallpaper. This is to avoid memory leaks due to the frame load.
