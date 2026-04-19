@@ -16,6 +16,8 @@ void loop_normal(
         xcb_pixmap_t     &pmap
 ){
     cv::Mat frame, bgra_frame;
+    std::string current_widget_text = "";
+    long long frame_count = 0;
 
     // Bucle principal controlado por la señal
     while (keep_running) {
@@ -26,8 +28,17 @@ void loop_normal(
         }
 
         cv::resize(frame, frame, cv::Size(config.rn_width, config.rn_height));
-        cv::cvtColor(frame, bgra_frame, cv::COLOR_BGR2BGRA);
+        if (options.enable_widgets && !config.widget_cmd.empty()) {
+            // Actualizar cada N frames según tu config
+            if (frame_count % config.widget_delay == 0) {
+                current_widget_text = fetch_command_output(config.widget_cmd);
+                //std::cout << current_widget_text << std::endl;
+            }
+            // Dibujar
+            draw_system_widget(frame, config, current_widget_text);
+        }
 
+        cv::cvtColor(frame, bgra_frame, cv::COLOR_BGR2BGRA);
         xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
                       config.rn_width, config.rn_height,
                       config.x_start, config.y_start, 0, screen->root_depth,
@@ -37,6 +48,7 @@ void loop_normal(
 
         // Usar el delay del descriptor si existe
         usleep(config.delay_ms * 1000); 
+        ++frame_count;
     }
 }
 
@@ -53,45 +65,64 @@ void loop_normal_cava(
     int audio_fd = open(cava_file.c_str(), O_RDONLY | O_NONBLOCK);
     int cava_delay_ms = 1000 / config.cava_fps;
     int ms_acumulados = 0;
+    bool cava_continue = (config.delay_ms - cava_delay_ms < 3);
     int bars_h = config.rn_height * config.cava_bars_height;
-    cv::Rect roi(0, config.rn_height - bars_h, config.rn_width, bars_h);
+    cv::Rect roi_cava(0, config.rn_height - bars_h, config.rn_width, bars_h);
+    std::string current_widget_text = "";
+    long long frame_count = 0;
 
+    barframe = cv::Mat::zeros(cv::Size(config.rn_width, config.rn_height), CV_8UC4);
     // Bucle principal controlado por la señal
     while (keep_running) {
+        auto start_time = std::chrono::steady_clock::now();
         if (ms_acumulados >= config.delay_ms || frame.empty()) {
             cap >> frame;
             if (frame.empty()) {
                 cap.set(cv::CAP_PROP_POS_FRAMES, 0);
                 cap >> frame;
             }
-            cv::resize(frame, frame, cv::Size(config.rn_width, config.rn_height));
             ms_acumulados = 0;
             // 2. Procesamiento de imagen
-            cv::resize(frame, frame, cv::Size(config.rn_width, config.rn_height));
+            if (frame.cols != config.rn_width || frame.rows != config.rn_height) {
+                cv::resize(frame, frame, cv::Size(config.rn_width, config.rn_height));
+            }
+            if(!cava_continue) {
+                cv::cvtColor(frame, bgra_frame, cv::COLOR_BGR2BGRA);
+                bgra_frame.copyTo(barframe);
+            }
+            else cv::cvtColor(frame, bgra_frame, cv::COLOR_BGR2BGRA);
         }
 
-        if (roi.width > 0 && roi.height > 0) {
-            bars = get_cava_bars(roi.width, roi.height, config, config.cava_num_bars, audio_fd);
+        if (roi_cava.width > 0 && roi_cava.height > 0)
+            get_cava_bars(barframe, roi_cava, config, config.cava_num_bars, audio_fd);
+
+        if (options.enable_widgets && !config.widget_cmd.empty()) {
+            if (frame_count % config.widget_delay == 0) {
+                current_widget_text = fetch_command_output(config.widget_cmd);
+            }
+            draw_system_widget(barframe, config, current_widget_text);
         }
-
-        // 3. Mezcla sin IFs: Usamos ROI y suma de matrices
-        // Esto asume que bars es del mismo tipo que frame
-        frame.copyTo(barframe);
-        cv::add(barframe(roi), bars, barframe(roi));
-
-        cv::cvtColor(barframe, bgra_frame, cv::COLOR_BGR2BGRA);
 
         xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
                       config.rn_width, config.rn_height,
                       config.x_start, config.y_start, 0, screen->root_depth,
-                      bgra_frame.total() * bgra_frame.elemSize(), bgra_frame.data);
+                      barframe.total() * barframe.elemSize(), barframe.data);
 
         update_root_atoms(conn, screen->root, pmap);
 
-        // Usar el delay del descriptor si existe
-//        usleep(config.delay_ms * 1000); 
-        usleep(cava_delay_ms * 1000);
-        ms_acumulados += cava_delay_ms;
+
+        if (!cava_continue) bgra_frame(roi_cava).copyTo(barframe(roi_cava));
+
+        auto end_time = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+        int sleep_time = cava_delay_ms - (int)elapsed;
+
+        if (sleep_time > 0) {
+            usleep(sleep_time * 1000);
+            ms_acumulados += cava_delay_ms;
+        } else ms_acumulados += elapsed;
+
+        ++frame_count;
     }
     if(audio_fd != -1) close(audio_fd);
 }

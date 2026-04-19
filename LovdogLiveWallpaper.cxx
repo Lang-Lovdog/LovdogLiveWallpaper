@@ -130,13 +130,18 @@ void parse_args(int argc, char** argv, WallpaperConfig& config) {
         {"cava-rgb"        , required_argument  , 0, 'R'},
         {"cava-rgb-rnd"    , no_argument        , 0, 'r'},
         {"cava-rgb-rng"    , required_argument  , 0, 'K'},
+        {"cava-rgb-ada"    , no_argument        , 0, 'A'},
+        {"widget-cmd"      , required_argument  , 0, 'w'},
+        {"widget-pos"      , required_argument  , 0, 'P'},
+        {"widget-fsz"      , required_argument  , 0, 'X'},
+        {"widget-fnt"      , required_argument  , 0, 'M'},
         {"help"            , no_argument        , 0, 'h'},
         {0, 0, 0, 0}
     };
 
     int opt;
     // Agregamos 'v:' y 'd:' a la cadena de opciones 
-    while ((opt = getopt_long(argc, argv, "sf:i:v:d:FCSd:D:T:cZ:B:H:R:rK:h", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "sf:i:v:FCSd:D:T:cZ:B:H:R:rK:Aw:P:X:M:h", long_options, nullptr)) != -1) {
         switch (opt) {
             case 's': 
                 options.stop_previous = true; 
@@ -214,8 +219,34 @@ void parse_args(int argc, char** argv, WallpaperConfig& config) {
                           << " max: " << config.cava_rgb_max
                           << std::endl
                 ;
+                }
                 break;
-            }
+            case 'A':
+                options.use_cava_adaptive = true;
+                break;
+            case 'w':
+                options.enable_widgets = true;
+                config.widget_cmd = optarg;
+                break;
+            case 'P':{
+                    std::string widget_pos = optarg;// Formato, en proporciones de 0 a 1 'x_prop:y_prop'
+                                                    // Separación de los valores
+                    size_t pos = widget_pos.find(':');
+                    if (pos != std::string::npos) {
+                        std::string x = widget_pos.substr(0, pos);
+                        std::string y = widget_pos.substr(pos + 1);
+                        config.widget_x_prop = atoi(x.c_str());
+                        config.widget_y_prop = atoi(y.c_str());
+                        std::cout << "Widget Pos: " << config.widget_x_prop << "x" << config.widget_y_prop << std::endl;
+                    }
+                }
+                break;
+            case 'X':
+                config.widget_font_px=atoi(optarg);
+                break;
+            case 'M':
+                config.widget_font = optarg;
+                break;
             case 'h':
                 help();
                 break;

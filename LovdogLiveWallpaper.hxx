@@ -27,13 +27,15 @@ enum RenderType : char {
 };
 
 struct RuntimeOptions {
-    bool        stop_previous   = false ;
-    std::string descriptor_file         ;
-    std::string target_id               ;
-    std::string video_path              ;
-    char        type                    ;
-    bool        enable_cava     = false ;
-    bool        use_cava_range  = false ;
+    bool        stop_previous      = false ;
+    std::string descriptor_file            ;
+    std::string target_id                  ;
+    std::string video_path                 ;
+    char        type                       ;
+    bool        enable_cava        = false ;
+    bool        use_cava_range     = false ;
+    bool        use_cava_adaptive  = false ;
+    bool        enable_widgets     = false ;
     // ... otros flags
 };
 
@@ -48,6 +50,11 @@ struct WallpaperConfig {
     int          rn_height         = 1080                      ;
     int          x_start           = 0                         ;
     int          y_start           = 0                         ;
+    int          widget_delay      = 3600                      ;
+    float        widget_x_prop     = 0.05f                     ;
+    float        widget_y_prop     = 0.05f                     ;
+    float        widget_font_px    = 12.0f                     ;
+    std::string  widget_font       = ""                        ;
     int          cava_num_bars     = 64                        ;
     float        cava_bars_height  = 0.25f                     ;
     cv::Scalar   cava_color        = cv::Scalar(200, 100, 050) ;
@@ -56,21 +63,25 @@ struct WallpaperConfig {
     bool         cava_random_color = false                     ;
     int          rn_type           = SCREEEN_FILL              ;
     size_t       in_type           = TYPE_NONE                 ;
+    std::string  widget_cmd        = ""                        ;
 };
 
 typedef std::vector<std::string> slideshow_paths;
 
-std::string find_wallpaper_path(const std::string& name);
+// General control routines
 void signal_handler(int sig);
 void parse_args(int argc, char** argv, WallpaperConfig& config);
-bool load_descriptor(const std::string& file, const std::string& id, WallpaperConfig& config);
 void handle_stop_previous();
 void register_current_pid();
 void update_root_atoms(xcb_connection_t* conn, xcb_window_t root, xcb_pixmap_t pmap);
+// Input routines (data loading)
+std::string find_wallpaper_path(const std::string& name);
+bool load_descriptor(const std::string& file, const std::string& id, WallpaperConfig& config);
 void routine_dir_slide(WallpaperConfig& config, cv::VideoCapture& cap);
 void routine_video_capture(WallpaperConfig& config, cv::VideoCapture& cap);
 void routine_descriptor_dir(const std::string& desc_file, const std::string& id, WallpaperConfig& config, cv::VideoCapture& cap);
 bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap, slideshow_paths &slideshow_list);
+// Animation loops
 void adjust_render_dims(WallpaperConfig& config, const xcb_screen_t* screen);
 void loop_normal(WallpaperConfig& config, cv::VideoCapture& cap, xcb_screen_t* screen, xcb_connection_t* conn, xcb_gcontext_t& gc, xcb_pixmap_t& pmap);
 void loop_slideshow(WallpaperConfig& config, slideshow_paths& cap, xcb_screen_t* screen, xcb_connection_t* conn, xcb_gcontext_t& gc, xcb_pixmap_t& pmap);
@@ -84,6 +95,16 @@ void start_loop(
         xcb_gcontext_t   &gc,
         xcb_pixmap_t     &pmap
 );
-cv::Mat get_cava_bars(int width, int height, const WallpaperConfig& config, int num_bars, int fifo);
+// Cava
+void get_cava_bars(cv::Mat& frame, cv::Rect& roi_cava, const WallpaperConfig& config, int num_bars, int fifo);
 cv::Scalar hexToScalar(std::string hex);
+// Widget
+std::string get_command_output(const char* cmd);
+std::string fetch_khal_agenda();
+void draw_system_widget(cv::Mat& frame, const WallpaperConfig& config, const std::string& text);
+std::string fetch_command_output(const std::string& cmd);
+cv::Scalar get_adaptive_color(cv::Scalar avg, bool is_text);
+void draw_bar_gradient(cv::Mat& bars_mat, const WallpaperConfig& config, int num_bars, int height, std::vector<uint8_t>heights, int bar_w);
+void draw_bar(cv::Mat& bars_mat, const WallpaperConfig& config, int num_bars, int height, std::vector<uint8_t>heights, int bar_w);
+// Conf file parsing
 
