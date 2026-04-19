@@ -16,7 +16,8 @@ About `xwinwrap`, there's an important problem for any tiling window like `zwm` 
 
 ### Compilation stuff
 
-You'll need `make`, `gcc`, `opencv-devel` and `xcb-devel` packages to compile this. May vary by distro I'm using void.
+You'll need `make`, `gcc`, `opencv-devel`, `fontconfig-devel` and `xcb-devel` packages to compile this. May vary by distro I'm using void.
+If you're on `debian`-based distros, it should be `dev` instead of `devel`. Check about underscores and naming conventions per distro.
 
 To compile use `make build`
 To compile use `make build`
@@ -24,8 +25,9 @@ To compile use `make build`
 ### For usage
 
 ```
-llw -v | --video <video path>
-llw -f | --descriptor-file <descriptor.maww> -i <wallpaper id>
+llw -v | --video            <video path>
+llw -f | --descriptor-file  <descriptor.maww>
+llw -i | --descriptor-id    <wallpaper id>
 llw -s | --send-stop
 llw -F | --bg-fill
 llw -S | --bg-stretch
@@ -40,6 +42,11 @@ llw -R | --cava-rgb         <'#XXXXXX'>
 llw -K | --cava-rgb-rng     <'#XXXXXX:#YYYYYY'>
 llw -r | --cava-rgb-rnd
 llw -B | --cava-bars        <int_number_of_bars>
+llw -A | --cava-rgb-ada
+llw -w | --widget-cmd       <string executable|command reads stdout>
+llw -P | --widget-pos       <x_proportional_to_width:y_proportional_to_height>
+llw -X | --widget-fsz       <int font_size>
+llw -M | --widget-fnt       <string font_name>
 llw -h | --help
 ```
 
@@ -54,6 +61,8 @@ The `slideshow` does not respond yet to background styles options `fill`, `cente
 For `CAVA` implementation I did a script `SetUpCavaLLW` so you can modify it to better suit your needs.
 
 Currently `CAVA` integration works only with `GIF/VIDEO` options. And is set to default it's width to the `GIF/VIDEO` width.
+
+`LLW` is not intended to send commands to main instance except for `--send-stop`. Make sure to stop any `LLW` instance before running a new one.
 
 ```
 -d Asciiquarium -s 100 :  640 x 360
@@ -100,6 +109,7 @@ Since I'm in masters studies toward research curriculum I cannot assure I'll add
 [ x ] Add CAVA-like visualization
 [ x ] Add slideshow
 [  ] Add system info monitoring
+[ x ] Add widget-like element
 
 
 As the obsessive wolf I am, and with the high amount of ideas here's a list of maybes I got in my head:
