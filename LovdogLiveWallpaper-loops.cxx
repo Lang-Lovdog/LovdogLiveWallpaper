@@ -21,6 +21,7 @@ void loop_normal(
 
     // Bucle principal controlado por la señal
     while (keep_running) {
+        auto start_time = std::chrono::steady_clock::now();
         cap >> frame;
         if (frame.empty()) {
             cap.set(cv::CAP_PROP_POS_FRAMES, 0);
@@ -46,9 +47,17 @@ void loop_normal(
 
         update_root_atoms(conn, screen->root, pmap);
 
+        auto end_time = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+        int sleep_time = config.delay_ms - (int)elapsed;
+
         // Usar el delay del descriptor si existe
-        usleep(config.delay_ms * 1000); 
-        ++frame_count;
+        if (sleep_time > 0) {
+            usleep(sleep_time * 1000);
+            frame_count+=sleep_time;
+        } else{
+            frame_count+=elapsed;
+        }
     }
 }
 
@@ -120,9 +129,11 @@ void loop_normal_cava(
         if (sleep_time > 0) {
             usleep(sleep_time * 1000);
             ms_acumulados += cava_delay_ms;
-        } else ms_acumulados += elapsed;
-
-        ++frame_count;
+            frame_count+=cava_delay_ms;
+        } else{
+            ms_acumulados += elapsed;
+            frame_count+=elapsed;
+        }
     }
     if(audio_fd != -1) close(audio_fd);
 }

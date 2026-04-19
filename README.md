@@ -47,6 +47,7 @@ llw -w | --widget-cmd       <string executable|command reads stdout>
 llw -P | --widget-pos       <x_proportional_to_width:y_proportional_to_height>
 llw -X | --widget-fsz       <int font_size>
 llw -M | --widget-fnt       <string font_name>
+llw -M | --widget-delay     <int frames_to_count>
 llw -h | --help
 ```
 
@@ -95,6 +96,8 @@ That script is intended to be used as the *trigger*  for the wallpaper manager, 
 In order to install, the command is pretty simple
 
 The `make install` has sudo in it, so no need to `sudo make install` avoiding possible root ownership issues regarding additional steps in the future.
+
+Now `m̀ake` with **no arguments** is enough to build and install. Please make sure, your instance is not running before updating.
 
 ```
 make build

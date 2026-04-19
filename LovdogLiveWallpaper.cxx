@@ -135,13 +135,14 @@ void parse_args(int argc, char** argv, WallpaperConfig& config) {
         {"widget-pos"      , required_argument  , 0, 'P'},
         {"widget-fsz"      , required_argument  , 0, 'X'},
         {"widget-fnt"      , required_argument  , 0, 'M'},
+        {"widget-delay"    , required_argument  , 0, 'U'},
         {"help"            , no_argument        , 0, 'h'},
         {0, 0, 0, 0}
     };
 
     int opt;
     // Agregamos 'v:' y 'd:' a la cadena de opciones 
-    while ((opt = getopt_long(argc, argv, "sf:i:v:FCSd:D:T:cZ:B:H:R:rK:Aw:P:X:M:h", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "sf:i:v:FCSd:D:T:cZ:B:H:R:rK:Aw:P:X:M:U:h", long_options, nullptr)) != -1) {
         switch (opt) {
             case 's': 
                 options.stop_previous = true; 
@@ -246,6 +247,9 @@ void parse_args(int argc, char** argv, WallpaperConfig& config) {
                 break;
             case 'M':
                 config.widget_font = optarg;
+                break;
+            case 'U':
+                config.widget_delay=atoi(optarg);
                 break;
             case 'h':
                 help();
