@@ -49,6 +49,8 @@ Each descriptor is given by the syntax `-d id -s period :  width x height` The p
 
 The `slideshow` does not respond yet to background styles options `fill`, `center` and `stretch`. The current version does a *fill*.
 
+For `CAVA` implementation I did a script `SetUpCavaLLW` so you can modify it to better suit your needs.
+
 ```
 -d Asciiquarium -s 100 :  640 x 360
 ```

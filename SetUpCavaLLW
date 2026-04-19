@@ -73,5 +73,5 @@ else
   esac
   echo "Descriptor: $decr"
 fi
-./LovdogLiveWallpaper/llw --cava -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>&1 &
+llw --cava -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>&1 &
 
