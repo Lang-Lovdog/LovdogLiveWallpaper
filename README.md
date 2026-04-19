@@ -53,6 +53,8 @@ The `slideshow` does not respond yet to background styles options `fill`, `cente
 
 For `CAVA` implementation I did a script `SetUpCavaLLW` so you can modify it to better suit your needs.
 
+Currently `CAVA` integration works only with `GIF/VIDEO` options. And is set to default it's width to the `GIF/VIDEO` width.
+
 ```
 -d Asciiquarium -s 100 :  640 x 360
 ```
@@ -95,7 +97,7 @@ make install
 Since I'm in masters studies toward research curriculum I cannot assure I'll add every element in todo. At least, not as fast as I want.
 
 [ x ] Add screen pixmap resizing options
-[  ] Add CAVA-like visualization
+[ x ] Add CAVA-like visualization
 [ x ] Add slideshow
 [  ] Add system info monitoring
 
