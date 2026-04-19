@@ -10,6 +10,8 @@ Mainly, less resources and less steps in the middle, so no bash interpreter and 
 
 About `xwinwrap`, there's an important problem for any tiling window like `zwm` or `i3wm` which sometimes handle the new root window as another tiled window and they're not fullscreen.
 
+![Example](./img/CavaScreenShot.png "My desktop with LLW integrated with CAVA")
+
 ## Small documentation
 
 ### Compilation stuff

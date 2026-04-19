@@ -60,7 +60,6 @@ cv::Mat get_cava_bars(int width, int height, const WallpaperConfig& config, int 
             // Generar un color aleatorio vibrante si el flag está activo
             current_color = cv::Scalar(rand()%256, rand()%256, rand()%256);
         }
-
         for (int i = 0; i < num_bars; i++) {
             // Mapear el valor de CAVA (0-255) al alto de la pantalla
             int val = (heights[i] * height) / 255;

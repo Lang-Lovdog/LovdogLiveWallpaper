@@ -15,6 +15,7 @@ echo "
 bars = ${cava_num_bars}
 sleep_timer = 0       # Reduce latencia
 autosens = 1
+mode = normal
 
 [input]
 method = pipewire
@@ -22,6 +23,7 @@ source = auto
 framerate = ${cava_fps}
 
 [output]
+channels = mono
 method = raw
 data_format = binary
 bit_format = 8bit
@@ -73,5 +75,5 @@ else
   esac
   echo "Descriptor: $decr"
 fi
-llw --cava -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>&1 &
+llw --cava -K '#ff0000:#0000ff' -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>&1 &
 

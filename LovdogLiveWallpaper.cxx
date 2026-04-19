@@ -198,7 +198,7 @@ void parse_args(int argc, char** argv, WallpaperConfig& config) {
             case 'r':
                 config.cava_random_color = true;
                 break;
-            case 'k': {
+            case 'K': {
                 options.use_cava_range = true;
                 std::string range = optarg;
                 size_t pos = range.find(':');
@@ -209,6 +209,11 @@ void parse_args(int argc, char** argv, WallpaperConfig& config) {
                     config.cava_rgb_min = hexToScalar(hex1);
                     config.cava_rgb_max = hexToScalar(hex2);
                 }
+                std::cout << "CAVA rgb Range: "
+                          << "min: " << config.cava_rgb_min
+                          << " max: " << config.cava_rgb_max
+                          << std::endl
+                ;
                 break;
             }
             case 'h':
