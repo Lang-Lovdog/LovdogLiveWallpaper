@@ -38,7 +38,28 @@ void signal_handler(int sig) {
     keep_running = false;
 }
 
-void help(void){
+cv::Scalar hexToScalar(std::string hex) {
+    if (hex[0] == '#') hex.erase(0, 1);
+    
+    // Si el string es corto (3 dígitos), expandirlo (ej. "F0F" -> "FF00FF")
+    if (hex.length() == 3) {
+        std::string full_hex = "";
+        for(char c : hex) { full_hex += c; full_hex += c; }
+        hex = full_hex;
+    }
+
+    int r, g, b;
+    std::stringstream ss;
+    ss << std::hex << hex.substr(0, 2); ss >> r; ss.clear();
+    ss << std::hex << hex.substr(2, 2); ss >> g; ss.clear();
+    ss << std::hex << hex.substr(4, 2); ss >> b;
+
+    // Retorna en formato BGR para OpenCV
+    return cv::Scalar(b, g, r);
+}
+
+
+void help_old(void){
     std::cout << "Usage: ./LovdogLiveWallpaper [options]" << std::endl;
     std::cout << "Options:" << std::endl;
     std::cout << "  -s, --send-stop" << std::endl;
@@ -50,26 +71,72 @@ void help(void){
     std::cout << "  -S, --bg-stretch" << std::endl;
 }
 
+void help(void) {
+    std::cout << "=========================================================" << std::endl
+              << "          Lovdog Live Wallpaper (LLW) - Help             " << std::endl
+              << "=========================================================" << std::endl
+              << "Usage: ./LovdogLiveWallpaper [options] [target]" << std::endl
+              << "\nGeneral Options:" << std::endl
+              << "  -s, --send-stop            Stop any previous instance of LLW." << std::endl
+              << "  -h, --help                 Display this help message." << std::endl
+
+              << "\nInput Sources:" << std::endl
+              << "  -f, --descriptor-file <f>  Use a specific .maww descriptor file." << std::endl
+              << "  -i, --descriptor-id <id>   Target ID inside the descriptor file." << std::endl
+              << "  -v, --video <file>         Directly play a Video or GIF file." << std::endl
+              << "  -d, --slideshow <dir>      Path to a directory for image slideshow." << std::endl
+
+              << "\nBackground Scaling (Scaling Type):" << std::endl
+              << "  -F, --bg-fill              Fill the screen (zoom to fit)." << std::endl
+              << "  -C, --bg-center            Center the image (no scaling)." << std::endl
+              << "  -S, --bg-stretch           Stretch to fit screen (ignore ratio)." << std::endl
+
+              << "\nSlideshow Configuration:" << std::endl
+              << "  -D, --slideshow-delay <ms> Time (ms) to show each image." << std::endl
+              << "  -T, --transition-delay <ms>Speed of transition effects." << std::endl
+
+              << "\nCAVA Audio Visualization:" << std::endl
+              << "  -c, --cava                 Enable CAVA audio visualization." << std::endl
+              << "  -Z, --cava-fps <int>       Framerate for audio processing (default: 24)." << std::endl
+              << "  -B, --cava-bars <int>      Number of bars (must match CAVA config)." << std::endl
+              << "  -H, --cava-height <int>    Proportion of the screen height for the bars to occupy." << std::endl
+              << "  -R, --cava-rgb <hex>       Static color for bars (e.g., #FF00FF)." << std::endl
+              << "  -r, --cava-rgb-rnd         Random color for bars every frame." << std::endl
+              << "  -K, --cava-rgb-rng <h1:h2> Color range/gradient (e.g., #0000FF:#FF0000)." << std::endl
+             
+              << "\nExample:" << std::endl
+              << "  ./llw --cava -B 64 -K \"#00FFFF:#FF00FF\" -v background.mp4" << std::endl
+              << "=========================================================" << std::endl
+    ;
+}
+
 // En LovdogLiveWallpaper.cxx 
 void parse_args(int argc, char** argv, WallpaperConfig& config) {
     static struct option long_options[] = {
-        {"send-stop"       , no_argument      , 0, 's'},
-        {"descriptor-file" , required_argument, 0, 'f'},
-        {"descriptor-id"   , required_argument, 0, 'i'},
-        {"video"           , required_argument, 0, 'v'},
-        {"bg-fill"         , no_argument      , 0, 'F'},
-        {"bg-center"       , no_argument      , 0, 'C'},
-        {"bg-stretch"      , no_argument      , 0, 'S'},
-        {"slideshow"       , required_argument, 0, 'd'},
-        {"slideshow-delay" , required_argument, 0, 'D'},
-        {"transition-delay", required_argument, 0, 'T'},
-        {"help"            , no_argument      , 0, 'h'},
+        {"send-stop"       , no_argument        , 0, 's'},
+        {"descriptor-file" , required_argument  , 0, 'f'},
+        {"descriptor-id"   , required_argument  , 0, 'i'},
+        {"video"           , required_argument  , 0, 'v'},
+        {"bg-fill"         , no_argument        , 0, 'F'},
+        {"bg-center"       , no_argument        , 0, 'C'},
+        {"bg-stretch"      , no_argument        , 0, 'S'},
+        {"slideshow"       , required_argument  , 0, 'd'},
+        {"slideshow-delay" , required_argument  , 0, 'D'},
+        {"transition-delay", required_argument  , 0, 'T'},
+        {"cava"            , no_argument        , 0, 'c'},
+        {"cava-fps"        , required_argument  , 0, 'Z'},
+        {"cava-bars"       , required_argument  , 0, 'B'},
+        {"cava-height"     , required_argument  , 0, 'H'},
+        {"cava-rgb"        , required_argument  , 0, 'R'},
+        {"cava-rgb-rnd"    , no_argument        , 0, 'r'},
+        {"cava-rgb-rng"    , required_argument  , 0, 'K'},
+        {"help"            , no_argument        , 0, 'h'},
         {0, 0, 0, 0}
     };
 
     int opt;
     // Agregamos 'v:' y 'd:' a la cadena de opciones 
-    while ((opt = getopt_long(argc, argv, "sf:i:v:d:FCSd:D:T:h", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "sf:i:v:d:FCSd:D:T:cZ:B:H:R:rK:h", long_options, nullptr)) != -1) {
         switch (opt) {
             case 's': 
                 options.stop_previous = true; 
@@ -104,6 +171,46 @@ void parse_args(int argc, char** argv, WallpaperConfig& config) {
                 break;
             case 'T':
                 config.transition_delay = atoi(optarg);
+            case 'c':
+                options.enable_cava=true;
+                break;
+            case 'Z':
+                config.cava_fps = atoi(optarg);
+                break;
+            case 'B':
+                config.cava_num_bars = atoi(optarg);
+                break;
+            case 'H':{
+                    float height = atof(optarg);
+                    if(height>1) height = 1;
+                    if(height<0) height = 0.3;
+                    config.cava_bars_height = height;
+                }
+                break;
+            case 'R': {
+                std::string hex = optarg;
+                if(hex[0] == '#') hex.erase(0, 1);
+                int r, g, b;
+                sscanf(hex.c_str(), "%02x%02x%02x", &r, &g, &b);
+                config.cava_color = cv::Scalar(b, g, r); // OpenCV usa BGR
+                break;
+            }
+            case 'r':
+                config.cava_random_color = true;
+                break;
+            case 'k': {
+                options.use_cava_range = true;
+                std::string range = optarg;
+                size_t pos = range.find(':');
+                if (pos != std::string::npos) {
+                    std::string hex1 = range.substr(0, pos);
+                    std::string hex2 = range.substr(pos + 1);
+                    // Función helper para convertir hex a Scalar...
+                    config.cava_rgb_min = hexToScalar(hex1);
+                    config.cava_rgb_max = hexToScalar(hex2);
+                }
+                break;
+            }
             case 'h':
                 help();
                 break;

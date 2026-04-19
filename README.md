@@ -28,9 +28,17 @@ llw -s | --send-stop
 llw -F | --bg-fill
 llw -S | --bg-stretch
 llw -C | --bg-center
-llw -d | --slideshow <directory>
-llw -D | --slideshow-delay
-llw -T | --transition-delay
+llw -d | --slideshow        <directory>
+llw -D | --slideshow-delay  <int_ms>
+llw -T | --transition-delay <int_ms>
+llw -c | --cava
+llw -Z | --cava-fps         <int_framerate>
+llw -H | --cava-height      <float_0_to_1_height_proportion>
+llw -R | --cava-rgb         <'#XXXXXX'>
+llw -K | --cava-rgb-rng     <'#XXXXXX:#YYYYYY'>
+llw -r | --cava-rgb-rnd
+llw -B | --cava-bars        <int_number_of_bars>
+llw -h | --help
 ```
 
 The `--send-stop` flag is used to stop the wallpaper. This is to avoid memory leaks due to the frame load.

@@ -4,6 +4,8 @@
 #include <ctime>
 
 extern bool keep_running;
+extern const std::string cava_file;
+extern RuntimeOptions options;
 
 void loop_normal(
         WallpaperConfig  &config,
@@ -36,6 +38,62 @@ void loop_normal(
         // Usar el delay del descriptor si existe
         usleep(config.delay_ms * 1000); 
     }
+}
+
+void loop_normal_cava(
+        WallpaperConfig  &config,
+        cv::VideoCapture &cap,
+        xcb_screen_t     *screen,
+        xcb_connection_t *conn,
+        xcb_gcontext_t   &gc,
+        xcb_pixmap_t     &pmap
+){
+    cv::Mat frame, barframe, bgra_frame, bars;
+
+    int audio_fd = open(cava_file.c_str(), O_RDONLY | O_NONBLOCK);
+    int cava_delay_ms = 1000 / config.cava_fps;
+    int ms_acumulados = 0;
+    int bars_h = config.rn_height * config.cava_bars_height;
+    cv::Rect roi(0, config.rn_height - bars_h, config.rn_width, bars_h);
+
+    // Bucle principal controlado por la señal
+    while (keep_running) {
+        if (ms_acumulados >= config.delay_ms || frame.empty()) {
+            cap >> frame;
+            if (frame.empty()) {
+                cap.set(cv::CAP_PROP_POS_FRAMES, 0);
+                cap >> frame;
+            }
+            cv::resize(frame, frame, cv::Size(config.rn_width, config.rn_height));
+            ms_acumulados = 0;
+            // 2. Procesamiento de imagen
+            cv::resize(frame, frame, cv::Size(config.rn_width, config.rn_height));
+        }
+
+        if (roi.width > 0 && roi.height > 0) {
+            bars = get_cava_bars(roi.width, roi.height, config, config.cava_num_bars, audio_fd);
+        }
+
+        // 3. Mezcla sin IFs: Usamos ROI y suma de matrices
+        // Esto asume que bars es del mismo tipo que frame
+        frame.copyTo(barframe);
+        cv::add(barframe(roi), bars, barframe(roi));
+
+        cv::cvtColor(barframe, bgra_frame, cv::COLOR_BGR2BGRA);
+
+        xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
+                      config.rn_width, config.rn_height,
+                      config.x_start, config.y_start, 0, screen->root_depth,
+                      bgra_frame.total() * bgra_frame.elemSize(), bgra_frame.data);
+
+        update_root_atoms(conn, screen->root, pmap);
+
+        // Usar el delay del descriptor si existe
+//        usleep(config.delay_ms * 1000); 
+        usleep(cava_delay_ms * 1000);
+        ms_acumulados += cava_delay_ms;
+    }
+    if(audio_fd != -1) close(audio_fd);
 }
 
 void loop_slideshow(
@@ -127,8 +185,14 @@ void start_loop(
         case TYPE_VIDEO:
         case TYPE_GIF:
         case TYPE_DESCRIPTOR:
-            std::cout << "Animated Start";
-            loop_normal(config, cap, screen, conn, gc, pmap);
+            if(options.enable_cava){
+                std::cout << "Animated Start With CAVA integration\n"
+                          << config.cava_num_bars << "bars || " << config.cava_fps << "of framerate";
+                loop_normal_cava(config, cap, screen, conn, gc, pmap);
+            }else{
+                std::cout << "Animated Start";
+                loop_normal(config, cap, screen, conn, gc, pmap);
+            }
             break;
         case TYPE_DIR_SLIDE:
             std::cout << "Slideshow List Start";
