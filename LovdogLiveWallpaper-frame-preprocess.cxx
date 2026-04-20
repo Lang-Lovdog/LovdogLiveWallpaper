@@ -63,10 +63,10 @@ bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap, slideshow_p
             std::cout<< "Video/Gif: " << config.path << std::endl;
             cap.open(config.path);
             if (cap.isOpened()) {
-                double fps   = cap.get(cv::CAP_PROP_FPS);
-                config.width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
-                config.height= cap.get(cv::CAP_PROP_FRAME_HEIGHT);
-                if (fps > 0) config.delay_ms = static_cast<int>(1000.0 / fps);
+                config.media_fps = cap.get(cv::CAP_PROP_FPS);
+                config.width     = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+                config.height    = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+                if (config.media_fps > 0) config.delay_ms = static_cast<int>(1000.0 / config.media_fps);
             }
             break;
 
@@ -105,6 +105,7 @@ bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap, slideshow_p
                     // Por si el descriptor apunta a un archivo directo
                     cap.open(config.path);
                 }
+                config.media_fps = 1000 / config.delay_ms;
             } else {
                 std::cerr << "[Error] ID '" << options.target_id << "' no encontrado en " << options.descriptor_file << std::endl;
             }

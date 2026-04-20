@@ -67,71 +67,73 @@ void loop_normal_cava(
         xcb_gcontext_t   &gc,
         xcb_pixmap_t     &pmap
 ){
-    cv::Mat frame, barframe, bgra_frame, bars;
+    cv::Mat frame, work_frame, barframe, bgra_frame, bars;
 
     int audio_fd = open(cava_file.c_str(), O_RDONLY | O_NONBLOCK);
     int cava_delay_ms = 1000 / config.cava_fps;
     int ms_acumulados = 0;
-    bool cava_continue = (config.delay_ms - cava_delay_ms < 3);
     int bars_h = config.rn_height * config.cava_bars_height;
     cv::Rect roi_cava(0, config.rn_height - bars_h, config.rn_width, bars_h);
     std::string current_widget_text = "";
-    long long frame_count = 0;
+    int ms_por_frame = config.delay_ms;
+    ms_acumulados=ms_por_frame;
 
     barframe = cv::Mat::zeros(cv::Size(config.rn_width, config.rn_height), CV_8UC4);
     // Bucle principal controlado por la señal
     while (keep_running) {
         auto start_time = std::chrono::steady_clock::now();
-        if (ms_acumulados >= config.delay_ms || frame.empty()) {
+        if (ms_acumulados >= ms_por_frame) {
             cap >> frame;
-            if (frame.empty()) {
-                cap.set(cv::CAP_PROP_POS_FRAMES, 0);
-                cap >> frame;
+            if (frame.empty()) { 
+                cap.set(cv::CAP_PROP_POS_FRAMES, 0); 
+                cap >> frame; 
             }
-            ms_acumulados = 0;
-            // 2. Procesamiento de imagen
-            if (frame.cols != config.rn_width || frame.rows != config.rn_height) {
-                cv::resize(frame, frame, cv::Size(config.rn_width, config.rn_height));
-            }
-            if(!cava_continue) {
-                cv::cvtColor(frame, bgra_frame, cv::COLOR_BGR2BGRA);
-                bgra_frame.copyTo(barframe);
-            }
-            else cv::cvtColor(frame, bgra_frame, cv::COLOR_BGR2BGRA);
+            cv::resize(frame, frame, cv::Size(config.rn_width, config.rn_height));
+            ms_acumulados = 0; // Reset del acumulador
+        }
+        
+        // 1. INICIALIZAR MEMORIA (Lo que ya tenías)
+        if (work_frame.size() != frame.size() || work_frame.type() != frame.type()) {
+            work_frame = cv::Mat(frame.size(), frame.type());
         }
 
-        if (roi_cava.width > 0 && roi_cava.height > 0)
-            get_cava_bars(barframe, roi_cava, config, config.cava_num_bars, audio_fd);
+        // 2. COPIAR PIXELES (¡ESTO FALTABA!)
+        // Sin esto, work_frame está lleno de basura o ceros (negro)
+        frame.copyTo(work_frame);
 
-        if (options.enable_widgets && !config.widget_cmd.empty()) {
-            if (frame_count % config.widget_delay == 0) {
-                current_widget_text = fetch_command_output(config.widget_cmd);
+        if (options.enable_cava) {
+            roi_cava &= cv::Rect(0, 0, work_frame.cols, work_frame.rows);
+            if (roi_cava.width > 0 && roi_cava.height > 0) {
+                get_cava_bars(work_frame, roi_cava, config, config.cava_num_bars, audio_fd);
             }
-            draw_system_widget(barframe, config, current_widget_text);
         }
 
+        if (options.enable_widgets) {
+            draw_system_widget(work_frame, config, current_widget_text);
+        }
+
+        // 3. CONVERTIR A BGRA PARA X11 (¡ESTO TAMBIÉN FALTABA!)
+        // Si no haces el cvtColor, bgra_frame se queda con lo que tenía o vacío
+        bgra_frame = cv::Mat(work_frame.size(), CV_8UC4);
+        cv::cvtColor(work_frame, bgra_frame, cv::COLOR_BGR2BGRA);
+
+        // 4. ENVIAR A X11
         xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
                       config.rn_width, config.rn_height,
                       config.x_start, config.y_start, 0, screen->root_depth,
-                      barframe.total() * barframe.elemSize(), barframe.data);
+                      bgra_frame.total() * bgra_frame.elemSize(), bgra_frame.data);
 
         update_root_atoms(conn, screen->root, pmap);
-
-
-        if (!cava_continue) bgra_frame(roi_cava).copyTo(barframe(roi_cava));
+        xcb_flush(conn);
 
         auto end_time = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+        
         int sleep_time = cava_delay_ms - (int)elapsed;
-
         if (sleep_time > 0) {
             usleep(sleep_time * 1000);
-            ms_acumulados += cava_delay_ms;
-            frame_count+=cava_delay_ms;
-        } else{
-            ms_acumulados += elapsed;
-            frame_count+=elapsed;
-        }
+            ms_acumulados += cava_delay_ms; // Sumamos el paso fijo de CAVA
+        } else ms_acumulados += elapsed; // Si el sistema es lento, sumamos lo que tardó
     }
     if(audio_fd != -1) close(audio_fd);
 }

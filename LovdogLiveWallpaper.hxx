@@ -48,6 +48,7 @@ struct RuntimeOptions {
 struct WallpaperConfig {
     std::string  path;
     int          delay_ms          = 33                        ;
+    int          media_fps         = 30                        ;
     int          transition_delay  = 5000                      ;
     int          cava_fps          = 24                        ;
     int          width             = 1920                      ;

@@ -62,7 +62,7 @@ void draw_adaptive_gradient_bar(cv::Mat& frame, int x, int y, int w, int h, cv::
         // o INTER_LINEAR si es más grande. Para CAVA, AREA suele ser más limpio.
         cv::resize(gradient_lut, bar_roi, bar_roi.size(), 0, 0, cv::INTER_AREA);
         //cv::bitwise_not(bar_roi, bar_roi);
-        bar_roi += cv::Scalar(0,0,0,200);
+        bar_roi += cv::Scalar(0,0,0);
     }
 }
 
@@ -77,8 +77,7 @@ void draw_bar_gradient(cv::Mat& bars_mat, const WallpaperConfig& config, int num
             cv::Scalar bar_color(
                 config.cava_rgb_min[0] + t * (config.cava_rgb_max[0] - config.cava_rgb_min[0]),
                 config.cava_rgb_min[1] + t * (config.cava_rgb_max[1] - config.cava_rgb_min[1]),
-                config.cava_rgb_min[2] + t * (config.cava_rgb_max[2] - config.cava_rgb_min[2]),
-                200
+                config.cava_rgb_min[2] + t * (config.cava_rgb_max[2] - config.cava_rgb_min[2])
             );
 
             cv::rectangle(bars_mat, 
@@ -144,7 +143,7 @@ void get_cava_bars(cv::Mat& barframe, cv::Rect& roi_cava, const WallpaperConfig&
     }
 
     // 4. Dibujo (Aseguramos 4 canales para concordar con BGRA)
-    cv::Mat bars_mat = cv::Mat::zeros(roi_cava.size(), CV_8UC4);
+    cv::Mat bars_mat = cv::Mat::zeros(roi_cava.size(), CV_8UC3);
     int bar_w = roi_cava.width / num_bars;
 
     if (options.use_cava_adaptive) {

@@ -10,6 +10,13 @@
 #include "LovdogLiveWallpaper.hxx"
 #include "opencv2/imgproc.hpp"
 
+struct CachedWidget {
+    widget_text content;
+    int ttl; // Time To Live (15 iteraciones)
+};
+
+static std::map<std::string, CachedWidget> widget_cache;
+
 // Idea para LovdogLiveWallpaper-widgets.cxx
 /*
 std::string get_command_output(const char* cmd) {
@@ -258,6 +265,79 @@ void assemble_widgets_row(const Widgets& widgets, const WallpaperConfig& cfg, wi
 static cv::Ptr<cv::freetype::FreeType2> ft2;
 
 void render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int& y_cursor) {
+    std::ifstream layout_file(config.widgets_file);
+    if (!layout_file.is_open()) return;
+
+    std::string line;
+    int row_idx = 0;
+    const int start_x = config.rn_width * config.widget_x_prop;
+
+    while (std::getline(layout_file, line)) {
+        trim_string(line);
+        if (line.empty() || line[0] == '#') continue;
+
+        Widgets current_row;
+        populate_widgets_from_layout(line, config, current_row);
+
+        int current_x = start_x;
+        int max_row_h = 0;
+
+        for (size_t i = 0; i < current_row.size(); ++i) {
+            std::string key = "row_" + std::to_string(row_idx) + "_col_" + std::to_string(i);
+            widget_text display_text;
+
+            // --- Lógica de Persistencia ---
+            if (current_row[i].empty()) {
+                if (widget_cache.count(key) && widget_cache[key].ttl > 0) {
+                    display_text = widget_cache[key].content;
+                    widget_cache[key].ttl--;
+                } else {
+                    widget_cache.erase(key);
+                    continue; // Desaparece definitivamente
+                }
+            } else {
+                display_text = current_row[i];
+                widget_cache[key] = {display_text, 15}; // Reset TTL
+            }
+
+            // --- Medición y Dibujo ---
+            // (Usa ft2->getTextSize para asegurar que el Rect sea del tamaño correcto)
+            int max_w = 0;
+            int line_h = config.widget_font_px + 10;
+            for (const auto& l : display_text) {
+                int bl = 0;
+                cv::Size sz = ft2->getTextSize(l, config.widget_font_px, -1, &bl);
+                if (sz.width > max_w) max_w = sz.width;
+            }
+
+            int bg_w = max_w + 20;
+            int bg_h = (display_text.size() * line_h) + 10;
+            if (bg_h > max_row_h) max_row_h = bg_h;
+
+            cv::Rect roi(current_x, y_cursor - config.widget_font_px, bg_w, bg_h);
+            roi &= cv::Rect(0, 0, frame.cols, frame.rows);
+
+            if (roi.width > 0 && roi.height > 0) {
+                cv::Mat subRegion = frame(roi); // Esto es una referencia, no copia
+                cv::Mat overlay(subRegion.size(), subRegion.type(), cv::Scalar(0, 0, 0));
+                cv::addWeighted(overlay, 0.45, subRegion, 0.55, 0, subRegion);
+                cv::rectangle(frame, roi, cv::Scalar(255, 255, 0), 1);
+
+                int ty = y_cursor;
+                for (const auto& l : display_text) {
+                    ft2->putText(frame, l, cv::Point(current_x + 10, ty), 
+                                 config.widget_font_px, cv::Scalar(255, 255, 255), -1, cv::LINE_AA, true);
+                    ty += line_h;
+                }
+            }
+            current_x += bg_w + (config.widget_box_sw * 10);
+        }
+        y_cursor += max_row_h + (config.widget_box_sh * 10);
+        row_idx++;
+    }
+}
+
+void _render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int& y_cursor) {
     std::ifstream layout_file(config.widgets_file);
     if (!layout_file.is_open()) return;
 
