@@ -12,6 +12,12 @@
 
 const std::string cava_file="/tmp/cava_fifo";
 
+
+typedef std::vector<std::string> widget_text;
+
+
+typedef std::vector<widget_text> Widgets;
+
 enum InputType : size_t {
     TYPE_NONE        = 0b00000,
     TYPE_DESCRIPTOR  = 0b10000,
@@ -56,6 +62,16 @@ struct WallpaperConfig {
     float        widget_font_px    = 12.0f                     ;
     std::string  widget_font       = ""                        ;
     int          widget_text_border= 2                         ;
+    size_t       widget_box_w      = 0                         ;
+    size_t       widget_box_h      = 0                         ;
+    size_t       widget_box_sw     = 1                         ;
+    size_t       widget_box_sh     = 1                         ;
+    std::string  sep_fill          = " "                       ;
+    std::string  prefix            =
+                   "/tmp/lovdog_live_wallpaper_widget_"        ; 
+    std::string  widgets_file      =
+                    std::string(getenv("HOME")) +
+                    "/.config/LovdogLiveWallpaper/widgets"     ;
     int          cava_num_bars     = 64                        ;
     float        cava_bars_height  = 0.25f                     ;
     cv::Scalar   cava_color        = cv::Scalar(200, 100, 050) ;
@@ -108,5 +124,16 @@ cv::Scalar get_adaptive_color(cv::Scalar avg, bool is_text);
 void draw_bar_gradient(cv::Mat& bars_mat, const WallpaperConfig& config, int num_bars, int height, std::vector<uint8_t>heights, int bar_w);
 void draw_bar(cv::Mat& bars_mat, const WallpaperConfig& config, int num_bars, int height, std::vector<uint8_t>heights, int bar_w);
 size_t visual_width(const std::string& s);
+void trim_string(std::string& s);
+void load_widget_file(const std::string& path, widget_text& text_out);
+void populate_widgets_from_layout(const std::string& layout_line, 
+                                 const WallpaperConfig& cfg, 
+                                 Widgets& widgets_out);
+void compute_max_width(const Widgets& widgets, size_t& max_w_out);
+void compute_max_height(const Widgets& widgets, size_t& max_h_out);
+std::string utf8_safe_substr(const std::string& s, size_t max_v_w);
+void assemble_widgets_row(const Widgets& widgets, const WallpaperConfig& cfg, widget_text& row_out);
+void render_widget_from_cmd(cv::Mat& frame, const WallpaperConfig& config, const std::string& text, int& y_cursor);
+void render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int& y_cursor);
 // Conf file parsing
 

@@ -16,6 +16,7 @@
 |-- LovdogLiveWallpaper-main.cpp > Código fuente principal ||
 |-- SetDescriptorLLW  > Arrancador automatizado mayormente aleatorio ||
 |-- SetUpWidgetsCavaLLW  > Arrancador automatizado CAVA ||
+|-- SetUpWidgetsLLW  > Arrancador automatizado CAVA ||
 |-- SetUpCavaLLW  > Arrancador automatizado CAVA ||
 |-- Makefile > Para make build, make install ||
 |-- README.md > Pequeña descripción ||
