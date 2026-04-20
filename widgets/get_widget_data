@@ -5,12 +5,13 @@ cd $(dirname "${BASH_SOURCE[0]}")
 
 widget_prefix='/tmp/lovdog_live_wallpaper_widget'
 while [ 1 ]; do
-  khal calendar  --format "{start-time} {title}" now 7d > ${widget_prefix}_khal &
+  WTTR="$(khal calendar  --format "{start-time} {title}" now 7d)"
+  echo "$WTTR" > ${widget_prefix}_khal &
   todo > ${widget_prefix}_todo &
   WTTR="$(curl 'wttr.in/?T&2')"
   echo "$WTTR" > ${widget_prefix}_wttr1
   ./get_wttr
   WTTR=$(./llw-sensors)
-  echo $WTTR > ${widget_prefix}_sensors
-  sleep 8s
+  echo "$WTTR" > ${widget_prefix}_sensors
+  sleep 3s
 done

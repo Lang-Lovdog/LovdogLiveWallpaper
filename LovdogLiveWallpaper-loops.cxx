@@ -98,25 +98,27 @@ void loop_normal_cava(
 
     int audio_fd = open(cava_file.c_str(), O_RDONLY | O_NONBLOCK);
     int cava_delay_ms = 1000 / config.cava_fps;
-    int ms_acumulados = 0;
+    int ms_acumulados_anim = 0;
+    int ms_acumulados_widg = 0;
     int bars_h = config.rn_height * config.cava_bars_height;
     cv::Rect roi_cava(0, config.rn_height - bars_h, config.rn_width, bars_h);
     std::string current_widget_text = "";
     int ms_por_frame = config.delay_ms-5;
-    ms_acumulados=ms_por_frame;
+    ms_acumulados_anim=ms_por_frame;
+    ms_acumulados_widg=config.widget_delay;
 
     barframe = cv::Mat::zeros(cv::Size(config.rn_width, config.rn_height), CV_8UC4);
     // Bucle principal controlado por la señal
     while (keep_running) {
         auto start_time = std::chrono::steady_clock::now();
-        if (ms_acumulados >= ms_por_frame) {
+        if (ms_acumulados_anim >= ms_por_frame) {
             cap >> frame;
             if (frame.empty()) { 
                 cap.set(cv::CAP_PROP_POS_FRAMES, 0); 
                 cap >> frame; 
             }
             cv::resize(frame, frame, cv::Size(config.rn_width, config.rn_height));
-            ms_acumulados = 0; // Reset del acumulador
+            ms_acumulados_anim = 0; // Reset del acumulador
         }
         
         // 1. INICIALIZAR MEMORIA (Lo que ya tenías)
@@ -135,7 +137,7 @@ void loop_normal_cava(
             }
         }
 
-        if (options.enable_widgets) {
+        if (options.enable_widgets && ms_acumulados_widg >= config.widget_delay) {
             draw_system_widget(work_frame, config, current_widget_text);
         }
 
@@ -159,8 +161,11 @@ void loop_normal_cava(
         int sleep_time = cava_delay_ms - (int)elapsed;
         if (sleep_time > 0) {
             usleep(sleep_time * 1000);
-            ms_acumulados += cava_delay_ms; // Sumamos el paso fijo de CAVA
-        } else ms_acumulados += elapsed; // Si el sistema es lento, sumamos lo que tardó
+            ms_acumulados_anim += cava_delay_ms; // Sumamos el paso fijo de CAVA
+        } else{
+            ms_acumulados_anim += elapsed;
+            ms_acumulados_widg += elapsed;
+        }// Si el sistema es lento, sumamos lo que tardó
     }
     if(audio_fd != -1) close(audio_fd);
     std::cout << "\nLimpiando pantalla..." << std::endl;

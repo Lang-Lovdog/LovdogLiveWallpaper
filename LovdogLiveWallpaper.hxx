@@ -63,10 +63,10 @@ struct WallpaperConfig {
     float        widget_font_px    = 12.0f                     ;
     std::string  widget_font       = ""                        ;
     int          widget_text_border= 2                         ;
-    size_t       widget_box_w      = 0                         ;
-    size_t       widget_box_h      = 0                         ;
-    size_t       widget_box_sw     = 1                         ;
-    size_t       widget_box_sh     = 1                         ;
+    int          widget_box_w      = 0                         ;
+    int          widget_box_h      = 0                         ;
+    int          widget_box_sw     = 1                         ;
+    int          widget_box_sh     = 1                         ;
     std::string  sep_fill          = " "                       ;
     std::string  prefix            =
                    "/tmp/lovdog_live_wallpaper_widget_"        ; 

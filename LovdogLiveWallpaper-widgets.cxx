@@ -279,6 +279,103 @@ void render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int&
         Widgets current_row;
         populate_widgets_from_layout(line, config, current_row);
 
+        // --- 1. PRE-CÁLCULO DE ANCHOS PARA ESPACIADO ---
+        std::vector<int> col_widths;
+        int total_widgets_w = 0;
+        std::vector<widget_text> row_data; // Cache temporal para no re-procesar
+
+        for (size_t i = 0; i < current_row.size(); ++i) {
+            std::string key = "row_" + std::to_string(row_idx) + "_col_" + std::to_string(i);
+            widget_text display_text;
+
+            // Lógica de persistencia (mismo bloque que ya tenías)
+            if (current_row[i].empty()) {
+                if (widget_cache.count(key) && widget_cache[key].ttl > 0) {
+                    display_text = widget_cache[key].content;
+                    widget_cache[key].ttl--;
+                } else {
+                    widget_cache.erase(key);
+                    row_data.push_back({}); // Placeholder vacío
+                    col_widths.push_back(0);
+                    continue;
+                }
+            } else {
+                display_text = current_row[i];
+                widget_cache[key] = {display_text, 15};
+            }
+
+            // Medir ancho de este widget específico
+            int max_w = 0;
+            for (const auto& l : display_text) {
+                int bl = 0;
+                cv::Size sz = ft2->getTextSize(l, config.widget_font_px, -1, &bl);
+                if (sz.width > max_w) max_w = sz.width;
+            }
+            int bg_w = max_w + 20;
+            col_widths.push_back(bg_w);
+            total_widgets_w += bg_w;
+            row_data.push_back(display_text);
+        }
+
+        // --- 2. CÁLCULO DEL GAP (Espaciado) ---
+        int gap = (config.widget_box_sw * 10);
+        int current_x = start_x;
+        int available_w = config.rn_width - (start_x * 2); // Asumiendo margen simétrico
+
+        if (config.widget_box_sw == -1 && col_widths.size() > 1) {
+            gap = (available_w - total_widgets_w) / (int)(col_widths.size() - 1);
+            if (gap < 0) gap = 10; // Fallback si son demasiados widgets
+        }
+
+        // --- 3. DIBUJO REAL ---
+        int max_row_h = 0;
+        int line_h = config.widget_font_px + 0;
+
+        for (size_t i = 0; i < row_data.size(); ++i) {
+            if (row_data[i].empty()) continue;
+
+            int bg_w = col_widths[i];
+            int bg_h = (row_data[i].size() * line_h) + 10;
+            if (bg_h > max_row_h) max_row_h = bg_h;
+
+            cv::Rect roi(current_x, y_cursor - config.widget_font_px, bg_w, bg_h);
+            roi &= cv::Rect(0, 0, frame.cols, frame.rows);
+
+            if (roi.width > 0 && roi.height > 0) {
+                cv::Mat subRegion = frame(roi);
+                cv::Mat overlay(subRegion.size(), subRegion.type(), cv::Scalar(0, 0, 0));
+                cv::addWeighted(overlay, 0.45, subRegion, 0.55, 0, subRegion);
+                cv::rectangle(frame, roi, cv::Scalar(255, 255, 0), 1);
+
+                int ty = y_cursor;
+                for (const auto& l : row_data[i]) {
+                    ft2->putText(frame, l, cv::Point(current_x + 10, ty), 
+                                 config.widget_font_px, cv::Scalar(255, 255, 255), -1, cv::LINE_AA, true);
+                    ty += line_h;
+                }
+            }
+            current_x += bg_w + gap; // Usamos el gap calculado
+        }
+        y_cursor += max_row_h + (config.widget_box_sh * 10);
+        row_idx++;
+    }
+}
+
+void _render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int& y_cursor) {
+    std::ifstream layout_file(config.widgets_file);
+    if (!layout_file.is_open()) return;
+
+    std::string line;
+    int row_idx = 0;
+    const int start_x = config.rn_width * config.widget_x_prop;
+
+    while (std::getline(layout_file, line)) {
+        trim_string(line);
+        if (line.empty() || line[0] == '#') continue;
+
+        Widgets current_row;
+        populate_widgets_from_layout(line, config, current_row);
+
         int current_x = start_x;
         int max_row_h = 0;
 
@@ -337,84 +434,6 @@ void render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int&
     }
 }
 
-void _render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int& y_cursor) {
-    std::ifstream layout_file(config.widgets_file);
-    if (!layout_file.is_open()) return;
-
-    std::string line;
-    const int start_x = config.rn_width * config.widget_x_prop;
-
-    while (std::getline(layout_file, line)) {
-        trim_string(line);
-        if (line.empty() || line[0] == '#') continue;
-
-        // 1. Obtener la rejilla de widgets de la línea actual
-        Widgets current_row;
-        populate_widgets_from_layout(line, config, current_row);
-        
-        int current_x = start_x;
-        int max_row_h = 0;
-
-        int max_pixel_width = 0;
-        int line_spacing = 10;
-
-        // 2. Iterar sobre cada celda (widget) de la fila
-        for (const auto& widget_lines : current_row) {
-            if (widget_lines.empty()) continue;
-
-            // Calcular ancho visual máximo de este widget específico
-            for (const auto& l : widget_lines) {
-                int baseLine = 0;
-                // Medimos el tamaño que ocupará el texto en píxeles
-                cv::Size textSize = ft2->getTextSize(l, config.widget_font_px, -1, &baseLine);
-                
-                if (textSize.width > max_pixel_width) max_pixel_width = textSize.width;
-            }
-
-            // Dimensiones de la caja HUD para este widget
-            int padding_h = 20; // Espacio extra a los lados
-            int padding_v = 10; // Espacio extra arriba/abajo
-            
-            int bg_w = max_pixel_width + padding_h;
-            int bg_h = (widget_lines.size() * (config.widget_font_px + line_spacing)) + padding_v;
-
-            if (bg_h > max_row_h) max_row_h = bg_h;
-
-            // Definir ROI para la caja individual
-            cv::Rect roi(current_x, y_cursor - config.widget_font_px, bg_w, bg_h);
-            roi &= cv::Rect(0, 0, frame.cols, frame.rows);
-
-            if (roi.width > 5 && roi.height > 5) {
-                // Dibujar fondo semitransparente
-                cv::Mat overlay = frame(roi).clone();
-                overlay.setTo(cv::Scalar(0, 0, 0));
-                cv::addWeighted(overlay, 0.45, frame(roi), 0.55, 0, frame(roi));
-                
-                // Borde HUD (Cian/Amarillo)
-                cv::rectangle(frame, roi, cv::Scalar(255, 255, 0), 1);
-
-                // Color adaptativo local
-                cv::Scalar font_color = get_adaptive_color(cv::mean(frame(roi)), true);
-                font_color[3] = 255;
-
-                // Renderizar el texto dentro de la caja
-                int text_y = y_cursor;
-                for (const auto& t_line : widget_lines) {
-                    // Añadimos +10 en X para que no pegue al borde izquierdo de la caja
-                    ft2->putText(frame, t_line, cv::Point(current_x + 10, text_y), 
-                                 config.widget_font_px, font_color, -1, cv::LINE_AA, true);
-                    text_y += (config.widget_font_px + line_spacing);
-                }
-            }
-
-            // Desplazamiento horizontal: ancho de la caja + box_sw (como margen)
-            current_x += bg_w + (config.widget_box_sw * 10);
-        }
-
-        // Salto de línea: alto de la fila + box_sh
-        y_cursor += max_row_h + (config.widget_box_sh * 10);
-    }
-}
 
 void render_widget_from_cmd(cv::Mat& frame, const WallpaperConfig& config, const std::string& text, int& y_cursor) {
     if (text.empty()) return;
@@ -433,7 +452,7 @@ void render_widget_from_cmd(cv::Mat& frame, const WallpaperConfig& config, const
     int line_h = config.widget_font_px + 5;
     int widget_x = config.rn_width * config.widget_x_prop;
     int bg_w = max_v_w * (config.widget_font_px * 0.65) + 20;
-    int bg_h = lines.size() * line_h + 10;
+    int bg_h = lines.size() * line_h + 0;
 
     cv::Rect roi(widget_x - 10, y_cursor - config.widget_font_px, bg_w, bg_h);
     roi &= cv::Rect(0, 0, frame.cols, frame.rows);
