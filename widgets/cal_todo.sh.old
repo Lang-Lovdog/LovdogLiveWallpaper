@@ -1,0 +1,58 @@
+#!/bin/bash
+
+confdir="$HOME/.config/LovdogLiveWallpaper/"
+widgets="${confdir}/widgets"
+## cd to file parent
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+function align_merge(){
+    if [ $# -eq 1 ]; then cat "$1"; fi
+    file1=$1;
+    file2=$2;
+    w=$(wc -L < file1); paste file1 file2 | awk -v w=$w -F'\t' '{ printf "%-*s  %s\n", w, $1, $2 }'
+}
+
+for widgetfile in `cat ${widgets}`; do
+    align_merge ${widgetfile}
+done
+
+##!/bin/bash
+#set -euo pipefail
+#
+#confdir="$HOME/.config/LovdogLiveWallpaper"
+#widgets="$confdir/widgets"
+#
+#cd "$(dirname "${BASH_SOURCE[0]}")"
+#
+#align_merge() {
+#    local file1="$1"
+#    local file2="${2:-}"
+#    if [ -z "$file2" ]; then
+#        cat -- "$file1"
+#        return
+#    fi
+#    # compute max line length of file1
+#    local w
+#    w=$(wc -L < "$file1")
+#    paste "$file1" "$file2" | awk -v w="$w" -F'\t' '{ printf "%-*s  %s\n", w, $1, $2 }'
+#}
+#
+## read widgets file line-by-line, ignore empty lines and comments
+#while IFS= read -r widgetfile || [ -n "$widgetfile" ]; do
+#    widgetfile="${widgetfile%%#*}"   # strip inline comments
+#    widgetfile="${widgetfile#"${widgetfile%%[![:space:]]*}"}" # trim leading spaces
+#    widgetfile="${widgetfile%"${widgetfile##*[![:space:]]}"}" # trim trailing spaces
+#    [ -z "$widgetfile" ] && continue
+#    if [ ! -e "$widgetfile" ]; then
+#        printf 'Warning: widget file not found: %s\n' "$widgetfile" >&2
+#        continue
+#    fi
+#    # if widgetfile lists two filenames separated by whitespace, pass both to align_merge
+#    set -- $widgetfile
+#    if [ $# -ge 2 ]; then
+#        align_merge "$1" "$2"
+#    else
+#        align_merge "$1"
+#    fi
+#done < "$widgets"
+#

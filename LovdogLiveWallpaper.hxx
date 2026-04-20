@@ -50,11 +50,12 @@ struct WallpaperConfig {
     int          rn_height         = 1080                      ;
     int          x_start           = 0                         ;
     int          y_start           = 0                         ;
-    int          widget_delay      = 3600                      ;
+    int          widget_delay      = 90                        ;
     float        widget_x_prop     = 0.05f                     ;
     float        widget_y_prop     = 0.05f                     ;
     float        widget_font_px    = 12.0f                     ;
     std::string  widget_font       = ""                        ;
+    int          widget_text_border= 2                         ;
     int          cava_num_bars     = 64                        ;
     float        cava_bars_height  = 0.25f                     ;
     cv::Scalar   cava_color        = cv::Scalar(200, 100, 050) ;

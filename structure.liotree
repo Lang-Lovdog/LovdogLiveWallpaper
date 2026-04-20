@@ -1,5 +1,9 @@
 | LovdogLiveWallpaper/      > También 2lw o LLW  ||
 |- ./
+|- widgets/
+|=-
+|---- LovdogLiveWallpaper-widget-parser.cpp
+|==
 |-- LovdogLiveWallpaper.hxx > Cabecera del programa ||
 |-- LovdogLiveWallpaper-sensors.hxx > Definiciones de funciones del programa integración de CAVA ||
 |-- LovdogLiveWallpaper.cxx > Definiciones de funciones del programa general ||

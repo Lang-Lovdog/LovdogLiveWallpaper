@@ -131,11 +131,15 @@ void draw_system_widget(cv::Mat& frame, const WallpaperConfig& config, const std
     while (std::getline(ss, line)) {
         // --- EFECTO DE BORDE (OUTLINE) ---
         // Dibujamos en los 8 desplazamientos para un borde sólido y legible
-        for(int dx = -1; dx <= 1; dx++) {
-            for(int dy = -1; dy <= 1; dy++) {
-                if (dx == 0 && dy == 0) continue;
-                ft2->putText(frame, line, cv::Point(widget_x + dx, y_cursor + dy), 
-                             config.widget_font_px, font_border, -1, cv::LINE_AA, true);
+        int thickness = config.widget_text_border; // Ajusta a 2 o 3 para un borde más pesado
+        for(int dx = -thickness; dx <= thickness; dx++) {
+            for(int dy = -thickness; dy <= thickness; dy++) {
+                // Optimización: Solo dibuja si estamos en el borde o dentro del radio
+                if (dx*dx + dy*dy <= thickness*thickness) { 
+                    if (dx == 0 && dy == 0) continue;
+                    ft2->putText(frame, line, cv::Point(widget_x + dx, y_cursor + dy), 
+                                 config.widget_font_px, font_border, -1, cv::LINE_AA, true);
+                }
             }
         }
 
@@ -145,20 +149,5 @@ void draw_system_widget(cv::Mat& frame, const WallpaperConfig& config, const std
         
         y_cursor += config.widget_font_px + 10; // Espaciado vertical
     }
-
-    //while (std::getline(ss, line)) {
-    //    for(int dx=-1; dx<=1; dx++)
-    //        for(int dy=-1; dy<=1; dy++)
-    //            cv::putText(frame, line, cv::Point(widget_x+dx, y_cursor+dy), font, font_scale, font_border, cv::LINE_AA);
-    //    // 1. Sombreado para legibilidad (Drop shadow)
-    //    cv::putText(frame, line, cv::Point(widget_x + 1, y_cursor + 1), 
-    //                cv::FONT_HERSHEY_SIMPLEX, font_scale, font_color, 1, cv::LINE_AA);
-    //    
-    //    // 2. Texto principal (usando el color de cava para consistencia estética)
-    //    cv::putText(frame, line, cv::Point(widget_x, y_cursor), 
-    //                cv::FONT_HERSHEY_SIMPLEX, font_scale, font_color, 1, cv::LINE_AA);
-    //    
-    //    y_cursor += config.widget_font_px + 10; // Espaciado entre líneas
-    //}
 }
 

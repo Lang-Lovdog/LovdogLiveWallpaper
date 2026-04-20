@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+widgets_file="$HOME/.config/LovdogLiveWallpaper/widgets"
+colwidth=80
+
+usage(){ printf 'Usage: %s [-w width]\n' "$0"; exit 2; }
+
+while getopts ":w:" o; do
+  case $o in
+    w) colwidth="$OPTARG" ;;
+    *) usage ;;
+  esac
+done
+shift $((OPTIND-1))
+
+align_merge() {
+  local f1="$1" f2="${2:-}" w="$colwidth"
+  if [ -z "$f2" ]; then
+    cat -- "$f1"
+    return
+  fi
+  if [ -z "$w" ] || [ "$w" -le 0 ]; then
+    w=$(wc -L < "$f1")
+  fi
+  paste "$f1" "$f2" | awk -v w="$w" -F'\t' '{ printf "%-*s  %s\n", w, $1, $2 }'
+}
+
+mapfile -t lines < "$widgets_file"
+
+i=0
+while [ $i -lt "${#lines[@]}" ]; do
+  idx1=$i
+  idx3=$((i+2))
+  if [ $idx3 -lt "${#lines[@]}" ]; then
+    align_merge "${lines[$idx1]}" "${lines[$idx3]}"
+  else
+    align_merge "${lines[$idx1]}"
+  fi
+  mid=$((i+1))
+  if [ $mid -lt "${#lines[@]}" ]; then
+    align_merge "${lines[$mid]}"
+  fi
+  i=$((i+3))
+done
+

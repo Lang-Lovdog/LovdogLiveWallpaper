@@ -1,0 +1,122 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+static string trim(const string &s){
+    size_t a = s.find_first_not_of(" \t\r\n");
+    if(a==string::npos) return "";
+    size_t b = s.find_last_not_of(" \t\r\n");
+    return s.substr(a, b-a+1);
+}
+
+vector<string> read_file_lines(const string &path){
+    vector<string> out;
+    ifstream ifs(path);
+    if(!ifs) return out;
+    string line;
+    while(getline(ifs, line)) out.push_back(line);
+    return out;
+}
+
+int main(int argc, char** argv){
+    string widgets_file;
+    int fixed_width = 0;
+    string sep = "  ";
+    // simple args: -w width -s "sep" widgets_file
+    for(int i=1;i<argc;i++){
+        string a = argv[i];
+        if(a=="-w" && i+1<argc){ fixed_width = stoi(argv[++i]); continue; }
+        if(a=="-s" && i+1<argc){ sep = argv[++i]; continue; }
+        widgets_file = a;
+    }
+    if(widgets_file.empty()){
+        cerr<<"Usage: "<<argv[0]<<" [-w width] [-s separator] widgets_list_file\n";
+        return 2;
+    }
+
+    ifstream wf(widgets_file);
+    if(!wf){ cerr<<"Cannot open widgets file: "<<widgets_file<<"\n"; return 2; }
+
+    string line;
+    while(getline(wf, line)){
+        line = trim(line);
+        if(line.empty() || line[0]=='#') continue;
+
+        const string PREFIX = "/tmp/lovdog_live_wallpaper_widget_";
+        // split on literal "::"
+        vector<string> cols;
+        size_t pos = 0;
+        while(true){
+            size_t p = line.find("::", pos);
+            string tok = (p==string::npos) ? line.substr(pos) : line.substr(pos, p-pos);
+            tok = trim(tok);
+            if(!tok.empty()){
+                // if token looks like a path (starts with '/') use as-is; otherwise treat as suffix and prepend prefix
+                if(tok.front() == '/'){
+                    cols.push_back(tok);
+                } else {
+                    cols.push_back(PREFIX + tok);
+                }
+            } else {
+                cols.push_back(string()); // keep empty columns if present
+            }
+            if(p==string::npos) break;
+            pos = p+2;
+        }
+
+        // validate prefix rule
+        bool ok = true;
+        for(auto &c: cols){
+            if(c.empty()) continue;
+            if(c.find("/tmp/lovdog_live_wallpaper_widget_")!=0){
+                cerr<<"Warning: column path does not have required prefix: "<<c<<"\n";
+                // continue but do not fail
+            }
+        }
+
+        // read each file into vector<string>
+        vector<vector<string>> data(cols.size());
+        size_t max_lines = 0;
+        for(size_t i=0;i<cols.size();++i){
+            if(!cols[i].empty()){
+                data[i] = read_file_lines(cols[i]);
+            } // else leave empty
+            max_lines = max(max_lines, data[i].size());
+        }
+
+        // compute column widths (auto = longest line per column) unless fixed_width > 0
+        vector<size_t> widths(cols.size(), 0);
+        for(size_t i=0;i<cols.size();++i){
+            if(fixed_width>0){ widths[i] = fixed_width; continue; }
+            size_t w = 0;
+            for(auto &ln: data[i]) w = max(w, ln.size());
+            widths[i] = w;
+        }
+
+        // print row by row
+        for(size_t r=0;r<max_lines; ++r){
+            string out;
+            for(size_t c=0;c<cols.size(); ++c){
+                string cell = (r < data[c].size()) ? data[c][r] : string();
+                // left-justify into widths[c]
+                if(widths[c] > cell.size()){
+                    out += cell;
+                    out.append(widths[c] - cell.size(), ' ');
+                } else {
+                    out += cell;
+                }
+                if(c+1 < cols.size()) out += sep;
+            }
+            cout<<out<<"\n";
+        }
+        // if a column had zero lines but you still want to print that file as a single block
+        // (your previous behavior printed single-file outputs), below handles printing entire file
+        // when max_lines==0: print the files' contents (empty lines skip)
+        if(max_lines==0){
+            for(size_t c=0;c<cols.size(); ++c){
+                if(data[c].empty()) continue;
+                for(auto &ln: data[c]) cout<<ln<<"\n";
+            }
+        }
+    }
+    return 0;
+}
