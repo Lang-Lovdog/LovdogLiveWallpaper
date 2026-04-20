@@ -6,10 +6,20 @@ hsetroot -solid '#000000'
 llw --send-stop
 sleep 0.4
 
-if [ $# -gt 0 ]; then
-  descr=$1
+if [ $# -eq 2 ]; then
+  descr="$2"
   descr=${descr//\//}
-  decr="$(cat Descriptors.maww | grep $descr | head -n1 | awk '{print $2}')"
+  case "$1" in 
+    'v')  decr="$(find ./VIDEOS -name *$descr* | head -n1)"
+          flags="-v"
+      ;;
+    'g')  decr="$(find ./GISS   -name *$descr* | head -n1)"
+          flags="-v"
+      ;;
+    'd')  decr="$(cat Descriptors.maww | grep $descr | head -n1 | awk '{print $2}')"
+          flags="-f Descriptors.maww -i"
+      ;;
+  esac
   echo "Descriptor: $decr"
 else
   find_args=()
@@ -34,4 +44,5 @@ else
   esac
   echo "Descriptor: $decr"
 fi
-llw -F --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>&1 &
+llw -F --send-stop $flags "$decr" >> /tmp/lovdog_live_wallpaper.log 2>&1 &
+

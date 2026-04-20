@@ -1,6 +1,4 @@
 #include "LovdogLiveWallpaper.hxx"
-#include <algorithm>
-#include <random>
 #include <ctime>
 
 extern bool keep_running;

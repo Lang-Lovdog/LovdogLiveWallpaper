@@ -85,6 +85,5 @@ else
   esac
   echo "Descriptor: $decr"
 fi
-llw -X 10 -M 'BigBlueTermPlus Nerd Font' --cava -K '#ff0000:#0000ff' -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" >> /tmp/lovdog_live_wallpaper.log 2>&1 &
-#llw -w "$llw_widget" -X 10 -M 'BigBlueTermPlus Nerd Font' --cava -A -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>&1 &
+llw -w "$llw_widget" -X 10 -M 'BigBlueTermPlus Nerd Font' -K '#ff0000:#0000ff' -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" >> /tmp/lovdog_live_wallpaper.log 2>&1 &
 

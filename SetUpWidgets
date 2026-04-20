@@ -47,20 +47,10 @@ cd $LIODIR_IMAGES
 llw --send-stop
 sleep 0.9
 
-if [ $# -eq 2 ]; then
-  descr="$2"
+if [ $# -gt 1 ]; then
+  descr=$1
   descr=${descr//\//}
-  case "$1" in 
-    'v')  decr="$(find ./VIDEOS -name *$descr* | head -n1)"
-          flags="-v"
-      ;;
-    'g')  decr="$(find ./GISS   -name *$descr* | head -n1)"
-          flags="-v"
-      ;;
-    'd')  decr="$(cat Descriptors.maww | grep $descr | head -n1 | awk '{print $2}')"
-          flags="-f Descriptors.maww -i"
-      ;;
-  esac
+  decr="$(cat Descriptors.maww | grep $descr | head -n1 | awk '{print $2}')"
   echo "Descriptor: $decr"
 else
   find_args=()
@@ -70,10 +60,10 @@ else
   done
   # Random number between 0 and 1
   case "$((1 + (RANDOM % 2)))" in
-    "0")
-      decr="$(shuf -n1 Descriptors.maww | awk '{print $2}')"
-      flags="-f Descriptors.maww -i"
-      ;;
+    #"0")
+    #  decr="$(shuf -n1 Descriptors.maww | awk '{print $2}')"
+    #  flags="-f Descriptors.maww -i"
+    #  ;;
     "1")
       decr="$(find ./GIFS -maxdepth 1 -type f -print0 "${find_args[@]}" | shuf -z -n1 | tr -d '\0')"
       flags="-v"
@@ -85,6 +75,6 @@ else
   esac
   echo "Descriptor: $decr"
 fi
-llw -X 10 -M 'BigBlueTermPlus Nerd Font' --cava -K '#ff0000:#0000ff' -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" >> /tmp/lovdog_live_wallpaper.log 2>&1 &
+llw -w "$llw_widget" -X 10 -M 'BigBlueTermPlus Nerd Font' --cava -K '#ff0000:#0000ff' -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>&1 &
 #llw -w "$llw_widget" -X 10 -M 'BigBlueTermPlus Nerd Font' --cava -A -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>&1 &
 

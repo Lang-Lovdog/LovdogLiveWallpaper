@@ -107,5 +107,6 @@ std::string fetch_command_output(const std::string& cmd);
 cv::Scalar get_adaptive_color(cv::Scalar avg, bool is_text);
 void draw_bar_gradient(cv::Mat& bars_mat, const WallpaperConfig& config, int num_bars, int height, std::vector<uint8_t>heights, int bar_w);
 void draw_bar(cv::Mat& bars_mat, const WallpaperConfig& config, int num_bars, int height, std::vector<uint8_t>heights, int bar_w);
+size_t visual_width(const std::string& s);
 // Conf file parsing
 
