@@ -1,10 +1,9 @@
 #!/bin/bash
 
 cd $LIODIR_IMAGES
-hsetroot -solid '#000000' 
 
 llw --send-stop
-sleep 0.4
+sleep 0.9
 
 if [ $# -eq 2 ]; then
   descr="$2"

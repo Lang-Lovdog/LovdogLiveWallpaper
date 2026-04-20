@@ -5,6 +5,31 @@ extern bool keep_running;
 extern const std::string cava_file;
 extern RuntimeOptions options;
 
+void clean_screen(
+    WallpaperConfig &config,
+    xcb_screen_t    *screen,
+    xcb_connection_t *conn,
+    xcb_gcontext_t  &gc,
+    xcb_pixmap_t    &pmap
+) {
+    // 1. Crear matriz negra (3 canales BGR)
+    cv::Mat black = cv::Mat::zeros(config.rn_height, config.rn_width, CV_8UC3);
+    
+    // 2. Convertir a BGRA (4 canales)
+    cv::Mat black_bgra;
+    cv::cvtColor(black, black_bgra, cv::COLOR_BGR2BGRA);
+
+    // 3. Empujar la imagen al Pixmap de X11
+    xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
+                  config.rn_width, config.rn_height,
+                  config.x_start, config.y_start, 0, screen->root_depth,
+                  black_bgra.total() * black_bgra.elemSize(), black_bgra.data);
+
+    // 4. Notificar al sistema y forzar el dibujado
+    update_root_atoms(conn, screen->root, pmap);
+    xcb_flush(conn);
+}
+
 void loop_normal(
         WallpaperConfig  &config,
         cv::VideoCapture &cap,
@@ -57,6 +82,8 @@ void loop_normal(
             frame_count+=elapsed;
         }
     }
+    std::cout << "\nLimpiando pantalla..." << std::endl;
+    clean_screen(config, screen, conn, gc, pmap);
 }
 
 void loop_normal_cava(
@@ -75,7 +102,7 @@ void loop_normal_cava(
     int bars_h = config.rn_height * config.cava_bars_height;
     cv::Rect roi_cava(0, config.rn_height - bars_h, config.rn_width, bars_h);
     std::string current_widget_text = "";
-    int ms_por_frame = config.delay_ms;
+    int ms_por_frame = config.delay_ms-5;
     ms_acumulados=ms_por_frame;
 
     barframe = cv::Mat::zeros(cv::Size(config.rn_width, config.rn_height), CV_8UC4);
@@ -136,6 +163,8 @@ void loop_normal_cava(
         } else ms_acumulados += elapsed; // Si el sistema es lento, sumamos lo que tardó
     }
     if(audio_fd != -1) close(audio_fd);
+    std::cout << "\nLimpiando pantalla..." << std::endl;
+    clean_screen(config, screen, conn, gc, pmap);
 }
 
 void loop_slideshow(
@@ -211,6 +240,8 @@ void loop_slideshow(
             usleep(config.transition_delay*100); 
         }
     }
+    std::cout << "\nLimpiando pantalla..." << std::endl;
+    clean_screen(config, screen, conn, gc, pmap);
 }
 
 void start_loop(
@@ -223,6 +254,7 @@ void start_loop(
         xcb_pixmap_t     &pmap
 ){
     std::cout << "Loop Selector ";
+    clean_screen(config, screen, conn, gc, pmap);
     switch(config.in_type){
         case TYPE_VIDEO:
         case TYPE_GIF:

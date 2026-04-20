@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 url='https://wttr.in/?format=j1'
-ico_rain=""      # glifo nerdfont para lluvia
-ico_temp=""      # glifo nerdfont para termómetro
-labels=("Hoy" "Mañana" "Pasado")
+ico_rain=""      # glifo nerdfont para lluvia
+ico_temp=""      # glifo nerdfont para termómetro
+labels=("Hoy" "Mannana" "Pasado" "Pasando" "En 4 d")
 
 # Obtener JSON
 json=$(curl -s "$url") || { echo "Error en curl"; exit 1; }
 
 # Función para procesar un día (índice 0,1,2)
 print_day() {
-    local idx=$1
-    local label=$2
+    local label=$1
 
     # Extraer el array hourly del día correspondiente
     local hourly
@@ -45,13 +44,35 @@ print_day() {
     done <<< "$hourly"
 
     # Mostrar la línea con el formato que tenías
-    printf "%-7s | %s Prob lluvia [%2s%% | %2s%% | %2s%% | %2s%% | %2s%%] | %s Temp [%2s°C | %2s°C]\n" \
-        "$label" "$ico_rain" "${prob[1]}" "${prob[2]}" "${prob[3]}" "${prob[4]}" "${prob[5]}" \
+    printf "│ %-7s %s  [%3s%% %3s%% %3s%% %3s%% %3s%%] │ %s [%3s°C / %3s°C] │\n" \
+        "$label" \
+        "$ico_rain" "${prob[1]}" "${prob[2]}" "${prob[3]}" "${prob[4]}" "${prob[5]}" \
         "$ico_temp" "${temp[2]}" "${sens[2]}"
+    #printf "%-9s\t | %s Prob lluvia [%2s%% | %2s%% | %2s%% | %2s%% | %2s%%] | %s Temp [%2s°C | %2s°C]\n" \
+    #    "$label" "$ico_rain" "${prob[1]}" "${prob[2]}" "${prob[3]}" "${prob[4]}" "${prob[5]}" \
+    #    "$ico_temp" "${temp[2]}" "${sens[2]}"
 }
 
 # Procesar los tres días
-echo "" > /tmp/lovdog_live_wallpaper_widget_wttrin
-for i in 0 1 2; do
-    print_day "$i" "${labels[$i]}" >> /tmp/lovdog_live_wallpaper_widget_wttrin
-done
+main() {
+    # Ajusta el número de "─" según el ancho total de tu printf
+    local width=72 
+    local line=$(printf '%.0s─' $(seq 1 $width))
+
+    echo "${TOP_L}${line}${TOP_R}"
+    
+    # Ejemplo de cabecera opcional
+    printf "│ %-70s │\n" " PRONÓSTICO DEL CLIMA (Próximos días)"
+    echo "${SEP_L}${line}${SEP_R}"
+
+    for i in {0..4}; do
+        # Aquí llamas a tu lógica para llenar los arrays y luego:
+        print_day "${labels[$i]}"
+    done
+
+    echo "${BOT_L}${line}${BOT_R}"
+}
+
+main > /tmp/wttrin.tmp
+mv /tmp/wttrin.tmp /tmp/lovdog_live_wallpaper_widget_wttrin
+

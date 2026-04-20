@@ -303,7 +303,7 @@ void render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int&
             // --- Medición y Dibujo ---
             // (Usa ft2->getTextSize para asegurar que el Rect sea del tamaño correcto)
             int max_w = 0;
-            int line_h = config.widget_font_px + 10;
+            int line_h = config.widget_font_px + 0;
             for (const auto& l : display_text) {
                 int bl = 0;
                 cv::Size sz = ft2->getTextSize(l, config.widget_font_px, -1, &bl);
@@ -430,7 +430,7 @@ void render_widget_from_cmd(cv::Mat& frame, const WallpaperConfig& config, const
         if (v > max_v_w) max_v_w = v;
     }
 
-    int line_h = config.widget_font_px + 10;
+    int line_h = config.widget_font_px + 5;
     int widget_x = config.rn_width * config.widget_x_prop;
     int bg_w = max_v_w * (config.widget_font_px * 0.65) + 20;
     int bg_h = lines.size() * line_h + 10;

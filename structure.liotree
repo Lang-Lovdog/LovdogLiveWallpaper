@@ -1,9 +1,5 @@
 | LovdogLiveWallpaper/      > También 2lw o LLW  ||
 |- ./
-|- widgets/
-|=-
-|---- LovdogLiveWallpaper-widget-parser.cpp
-|==
 |-- LovdogLiveWallpaper.hxx > Cabecera del programa ||
 |-- LovdogLiveWallpaper-sensors.hxx > Definiciones de funciones del programa integración de CAVA ||
 |-- LovdogLiveWallpaper.cxx > Definiciones de funciones del programa general ||
@@ -15,8 +11,6 @@
 |-- LovdogLiveWallpaper-conf_file.cxx > Definiciones de funciones del programa ciclos de despliegue en pantalla ||
 |-- LovdogLiveWallpaper-main.cpp > Código fuente principal ||
 |-- SetDescriptorLLW  > Arrancador automatizado mayormente aleatorio ||
-|-- SetUpWidgetsCavaLLW  > Arrancador automatizado CAVA ||
-|-- SetUpWidgetsLLW  > Arrancador automatizado CAVA ||
 |-- SetUpCavaLLW  > Arrancador automatizado CAVA ||
 |-- Makefile > Para make build, make install ||
 |-- README.md > Pequeña descripción ||

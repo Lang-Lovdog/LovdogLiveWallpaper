@@ -1,48 +1,5 @@
 #!/bin/bash
 
-## Archivo de CAVA (si se cambia en el código fuente, cambiar también aquí)
-cava_fifo="/tmp/cava_fifo"
-config_file="/tmp/lovdog_live_wallpaper_cava_config"
-cava_fps=30
-cava_num_bars=85
-cava_bars_height=0.4
-llw_widgets="$LIODIR_IMAGES/LovdogLiveWallpaper/widgets/"
-llw_widget="$llw_widgets/cal_todo.sh"
-
-pkill cava
-
-# write cava config
-echo "
-[general]
-bars = ${cava_num_bars}
-#sleep_timer = 0       # Reduce latencia
-autosens = 0.3
-mode = single
-
-[input]
-method = pipewire
-source = auto
-framerate = ${cava_fps}
-
-[output]
-channels = mono
-method = raw
-data_format = binary
-bit_format = 8bit
-" > $config_file
-
-rm -f $cava_fifo
-mkfifo $cava_fifo
-
-# start cava instance
-cava -p $config_file > $cava_fifo 2>/dev/null &
-
-###### ARRANCADOR NORMAL
-
-if [ $# -eq 1 ]; then 
-  exit 0
-fi
-
 cd $LIODIR_IMAGES
 llw --send-stop
 sleep 0.9
@@ -85,5 +42,5 @@ else
   esac
   echo "Descriptor: $decr"
 fi
-llw -w "$llw_widget" -X 10 -M 'BigBlueTermPlus Nerd Font' -K '#ff0000:#0000ff' -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" >> /tmp/lovdog_live_wallpaper.log 2>&1 &
+llw -w "." -X 10 -M 'BigBlueTermPlus Nerd Font' -K '#ff0000:#0000ff' -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" >> /tmp/lovdog_live_wallpaper.log 2>&1 &
 

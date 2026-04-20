@@ -293,6 +293,7 @@ bool load_descriptor(const std::string& file, const std::string& id, WallpaperCo
 void intelligent_image_resize_keep_ratio(cv::Mat& img, int width, int height) {
     if (img.size().width > width || img.size().height > height) {
         double ratio = std::min((double)width / img.size().width, (double)height / img.size().height);
+        std::cout << "Ratio: " << ratio << std::endl;
         width = static_cast<int>(img.size().width * ratio);
         height = static_cast<int>(img.size().height * ratio);
         cv::resize(img, img, cv::Size(width, height));
@@ -302,6 +303,29 @@ void intelligent_image_resize_keep_ratio(cv::Mat& img, int width, int height) {
 void adjust_render_dims(WallpaperConfig& config,const xcb_screen_t* screen){
     switch(config.rn_type){
         case SCREEEN_FILL:{
+            double screen_ratio = (double)screen->width_in_pixels / screen->height_in_pixels;
+            double image_ratio  = (double)config.width / config.height;
+
+            int xwidth, xheight;
+
+            if (image_ratio > screen_ratio) {
+                // La imagen es más "ancha" que la pantalla (como tu GIF)
+                // Ajustamos al ANCHO de la pantalla y el alto queda con franjas (letterbox)
+                xwidth  = screen->width_in_pixels;
+                xheight = (int)(xwidth / image_ratio);
+            } else {
+                // La imagen es más "alta" que la pantalla (o igual)
+                // Ajustamos al ALTO de la pantalla y el ancho queda con franjas (pillarbox)
+                xheight = screen->height_in_pixels;
+                xwidth  = (int)(xheight * image_ratio);
+            }
+
+            config.rn_width  = xwidth;
+            config.rn_height = xheight;
+            config.x_start   = (screen->width_in_pixels - xwidth) / 2;
+            config.y_start   = (screen->height_in_pixels - xheight) / 2;
+            break;
+                              /*
             int  xwidth=0, xheight=0;
             double ratio;
 
@@ -323,6 +347,7 @@ void adjust_render_dims(WallpaperConfig& config,const xcb_screen_t* screen){
             config.rn_height = xheight;
             config.rn_width  = xwidth ;
             break;
+        */
         }
         case SCREEEN_CENTER:
             config.rn_height = config.width;
