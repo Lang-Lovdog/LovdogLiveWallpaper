@@ -5,7 +5,7 @@ ico_temp=""      # glifo nerdfont para termómetro
 labels=("Hoy" "Mannana" "Pasado" "Pasando" "En 4 d")
 
 # Obtener JSON
-json=$(curl -s "$url") || { echo "Error en curl"; exit 1; }
+json=$(curl -s "$url" 2> /dev/null) || { echo "Error en curl"; exit 1; }
 
 # Función para procesar un día (índice 0,1,2)
 print_day() {
@@ -73,6 +73,4 @@ main() {
     echo "${BOT_L}${line}${BOT_R}"
 }
 
-main > /tmp/wttrin.tmp
-mv /tmp/wttrin.tmp /tmp/lovdog_live_wallpaper_widget_wttrin
-
+main

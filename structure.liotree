@@ -1,5 +1,10 @@
 | LovdogLiveWallpaper/      > También 2lw o LLW  ||
 |- ./
+|- widgets/
+|=-
+|---- get_widget_data > El archivo de wigets en bash ||
+|---- get_wttr > Weather script ||
+|==
 |-- LovdogLiveWallpaper.hxx > Cabecera del programa ||
 |-- LovdogLiveWallpaper-sensors.hxx > Definiciones de funciones del programa integración de CAVA ||
 |-- LovdogLiveWallpaper.cxx > Definiciones de funciones del programa general ||

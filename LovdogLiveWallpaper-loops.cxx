@@ -58,6 +58,7 @@ void loop_normal(
     cv::Mat frame, bgra_frame;
     std::string current_widget_text = "";
     long long frame_count = 0;
+    std::list<WidgetElement> active_widgets_list;
 
     // Bucle principal controlado por la señal
     while (keep_running) {
@@ -69,14 +70,8 @@ void loop_normal(
         }
 
         cv::resize(frame, frame, cv::Size(config.rn_width, config.rn_height));
-        if (options.enable_widgets && !config.widget_cmd.empty()) {
-            // Actualizar cada N frames según tu config
-            if (frame_count % config.widget_delay == 0) {
-                current_widget_text = fetch_command_output(config.widget_cmd);
-                //std::cout << current_widget_text << std::endl;
-            }
-            // Dibujar
-            draw_system_widget(frame, config, current_widget_text);
+        if (options.enable_widgets) {
+            draw_system_widget(frame, config, active_widgets_list);
         }
 
         cv::cvtColor(frame, bgra_frame, cv::COLOR_BGR2BGRA);
@@ -115,9 +110,8 @@ void loop_normal_cava(
     std::string current_widget_text = "";
     int ms_por_frame = config.delay_ms-5;
     int ms_acumulados_anim = 0;
-    int ms_acumulados_widg = 0;
+    std::list<WidgetElement> active_widgets_list;
     ms_acumulados_anim=ms_por_frame;
-    ms_acumulados_widg=config.widget_delay;
 
     barframe = cv::Mat::zeros(cv::Size(config.rn_width, config.rn_height), CV_8UC4);
     // Bucle principal controlado por la señal
@@ -149,8 +143,8 @@ void loop_normal_cava(
             }
         }
 
-        if (options.enable_widgets && ms_acumulados_widg >= config.widget_delay) {
-            draw_system_widget(work_frame, config, current_widget_text);
+        if (options.enable_widgets) {
+            draw_system_widget(work_frame, config, active_widgets_list);
         }
 
         // 3. CONVERTIR A BGRA PARA X11 (¡ESTO TAMBIÉN FALTABA!)
@@ -168,10 +162,7 @@ void loop_normal_cava(
         if (sleep_time > 0) {
             usleep(sleep_time * 1000);
             ms_acumulados_anim += cava_delay_ms; // Sumamos el paso fijo de CAVA
-        } else{
-            ms_acumulados_anim += elapsed;
-            ms_acumulados_widg += elapsed;
-        }// Si el sistema es lento, sumamos lo que tardó
+        } else ms_acumulados_anim += elapsed;// Si el sistema es lento, sumamos lo que tardó
     }
     if(audio_fd != -1) close(audio_fd);
     std::cout << "\nLimpiando pantalla..." << std::endl;
@@ -203,9 +194,8 @@ void loop_slideshow(
     int bars_h = config.rn_height * config.cava_bars_height;
     cv::Rect roi_cava(0, config.rn_height - bars_h, config.rn_width, bars_h);
     int ms_por_frame = config.delay_ms;
-    int ms_acumulados_widg = 0;
     int pasos_espera = ms_por_frame / (1000 / config.cava_fps); // Calculamos pasos según FPS deseados
-    ms_acumulados_widg=config.widget_delay;
+    std::list<WidgetElement> active_widgets_list;
 
     while (keep_running) {
         random_image = slideshow_list[rand() % slideshow_list.size()];
@@ -239,8 +229,8 @@ void loop_slideshow(
                     }
                 }
 
-                if (options.enable_widgets && ms_acumulados_widg >= config.widget_delay) {
-                    draw_system_widget(temp_draw, config, current_widget_text);
+                if (options.enable_widgets) {
+                    draw_system_widget(temp_draw, config, active_widgets_list);
                 }
 
                 cv::cvtColor(temp_draw, bgra_frame, cv::COLOR_BGR2BGRA);
@@ -259,8 +249,8 @@ void loop_slideshow(
             }
 
             // Lógica de Widgets (ms_por_frame / pasos_espera nos da el tiempo real por iteración)
-            if (options.enable_widgets && ms_acumulados_widg >= config.widget_delay) {
-                draw_system_widget(work_frame, config, current_widget_text);
+            if (options.enable_widgets) {
+                draw_system_widget(work_frame, config, active_widgets_list);
             }
 
             // Convertir y Enviar a X11
@@ -284,8 +274,8 @@ void loop_slideshow(
                 }
             }
 
-            if (options.enable_widgets && ms_acumulados_widg >= config.widget_delay) {
-                draw_system_widget(temp_draw, config, current_widget_text);
+            if (options.enable_widgets) {
+                draw_system_widget(temp_draw, config, active_widgets_list);
             }
 
             cv::cvtColor(temp_draw, bgra_frame, cv::COLOR_BGR2BGRA);

@@ -2,6 +2,7 @@
 
 cd $LIODIR_IMAGES
 
+rm /tmp/lovdog_live_wallpaper/widgets_continue
 llw --send-stop
 sleep 0.9
 
@@ -9,10 +10,10 @@ if [ $# -eq 2 ]; then
   descr="$2"
   descr=${descr//\//}
   case "$1" in 
-    'v')  decr="$(find ./VIDEOS -name *$descr* | head -n1)"
+    'v')  decr="$(find ./VIDEOS -name "*$descr*" | head -n1)"
           flags="-v"
       ;;
-    'g')  decr="$(find ./GISS   -name *$descr* | head -n1)"
+    'g')  decr="$(find ./GISS   -name "*$descr*" | head -n1)"
           flags="-v"
       ;;
     'd')  decr="$(cat Descriptors.maww | grep $descr | head -n1 | awk '{print $2}')"

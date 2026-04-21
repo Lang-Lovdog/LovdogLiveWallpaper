@@ -14,10 +14,7 @@
 const std::string cava_file="/tmp/cava_fifo";
 
 
-typedef std::vector<std::string> widget_text;
-
-
-typedef std::vector<widget_text> Widgets;
+typedef int fifo_t;
 
 enum InputType : size_t {
     TYPE_NONE        = 0b00000,
@@ -70,7 +67,7 @@ struct WallpaperConfig {
     int          widget_box_sh     = 1                         ;
     std::string  sep_fill          = " "                       ;
     std::string  prefix            =
-                   "/tmp/lovdog_live_wallpaper_widget_"        ; 
+                   "/tmp/lovdog_live_wallpaper/w_fifo"         ; 
     std::string  widgets_file      =
                     std::string(getenv("HOME")) +
                     "/.config/LovdogLiveWallpaper/widgets"     ;
@@ -85,20 +82,25 @@ struct WallpaperConfig {
     std::string  widget_cmd        = ""                        ;
 };
 
+typedef std::vector<std::string> widget_text;
+typedef std::vector<widget_text> Widgets;
 struct WidgetElement {
-    widget_text      widget             ;
-    char             position           ;
-    int              box_width          ;
-    int              box_height         ;
-    int              box_x              ;
-    int              box_y              ;
-    cv::Scalar       border_color       ;
-    cv::Scalar       background_color   ;
-    float            background_opacity ;
-    float            border_opacity     ;
-    int              ttl                ; // Time To Live (15 iterations)
-    std::string      name               ;
+    widget_text      widget                ;
+    char             position              ;
+    int              box_width             ;
+    int              box_height            ;
+    int              box_x                 ;
+    int              box_y                 ;
+    cv::Scalar       border_color          ;
+    cv::Scalar       background_color      ;
+    float            background_opacity    ;
+    float            border_opacity        ;
+    int              ttl                   ; // Time To Live (15 iterations)
+    std::string      name                  ;
+    fifo_t           fifo_fd           = -1;
 };
+
+typedef std::vector<WidgetElement*> Widgets_t;
 
 struct MonitorRect {
     int16_t x, y;
@@ -148,7 +150,7 @@ cv::Scalar hexToScalar(std::string hex);
 // Widget
 std::string get_command_output(const char* cmd);
 std::string fetch_khal_agenda();
-void draw_system_widget(cv::Mat& frame, const WallpaperConfig& config, const std::string& text);
+void draw_system_widget(cv::Mat& frame, const WallpaperConfig& config, std::list<WidgetElement>& active_widgets_list);
 std::string fetch_command_output(const std::string& cmd);
 cv::Scalar get_adaptive_color(cv::Scalar avg, bool is_text);
 void draw_bar_gradient(cv::Mat& bars_mat, const WallpaperConfig& config, int num_bars, int height, std::vector<uint8_t>heights, int bar_w);
@@ -160,7 +162,8 @@ void populate_widgets_from_layout(
     const std::string& layout_line, 
     const WallpaperConfig& cfg, 
     Widgets& widgets_out,
-    char &h_gaps
+    char &h_gaps,
+    std::list<WidgetElement>& active_widgets_list
 );
 void _populate_widgets_from_layout(
     const std::string& layout_line, 
@@ -173,5 +176,8 @@ std::string utf8_safe_substr(const std::string& s, size_t max_v_w);
 void assemble_widgets_row(const Widgets& widgets, const WallpaperConfig& cfg, widget_text& row_out);
 void render_widget_from_cmd(cv::Mat& frame, const WallpaperConfig& config, const std::string& text, int& y_cursor);
 void render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int& y_cursor);
+void draw_single_widget(cv::Mat& frame, const WidgetElement& el, const WallpaperConfig& config);
+void update_widgets_layout(cv::Mat& frame, const WallpaperConfig& config, int& y_cursor, std::list<WidgetElement>& active_widgets_list);
+void cleanup_inactive_widgets(std::list<WidgetElement>& active_widgets_list);
 // Conf file parsing
 

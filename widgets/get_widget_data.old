@@ -1,0 +1,19 @@
+#!/bin/bash
+touch /tmp/lovdog_live_wallpaper_widgets_continue
+
+cd $(dirname "${BASH_SOURCE[0]}")
+
+widget_prefix='/tmp/lovdog_live_wallpaper_widget'
+while [ -f /tmp/lovdog_live_wallpaper_widgets_continue ]; do
+  WTTR="$(khal calendar  --format "{start-time} {title}" now 7d)"
+  echo "$WTTR" > ${widget_prefix}_khal
+  WTTR=$(todo)
+  echo "$WTTR" > ${widget_prefix}_todo &
+  WTTR="$(curl 'wttr.in/?T&2')"
+  echo "$WTTR" > ${widget_prefix}_wttr1
+  WTTR=$(./get_wttr)
+  echo "$WTTR" > ${widget_prefix}_wttrin
+  WTTR=$(./llw-sensors)
+  echo "$WTTR" > ${widget_prefix}_sensors
+  sleep 3s
+done
