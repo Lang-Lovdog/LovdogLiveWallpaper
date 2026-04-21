@@ -113,8 +113,6 @@ void parse_args(int argc, char** argv, WallpaperConfig& config);
 void handle_stop_previous();
 void register_current_pid();
 void update_root_atoms(xcb_connection_t* conn, xcb_window_t root, xcb_pixmap_t pmap);
-void setImageXCB();
-std::vector<MonitorRect> get_active_monitors(xcb_connection_t* conn, xcb_window_t root);
 // Input routines (data loading)
 std::string find_wallpaper_path(const std::string& name);
 bool load_descriptor(const std::string& file, const std::string& id, WallpaperConfig& config);
@@ -123,6 +121,14 @@ void routine_video_capture(WallpaperConfig& config, cv::VideoCapture& cap);
 void routine_descriptor_dir(const std::string& desc_file, const std::string& id, WallpaperConfig& config, cv::VideoCapture& cap);
 bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap, slideshow_paths &slideshow_list);
 // Animation loops
+void setImageXCB(
+        cv::Mat               &bgra_frame ,
+        const WallpaperConfig &config     ,
+        xcb_screen_t          *screen     ,
+        xcb_connection_t      *conn       ,
+        xcb_gcontext_t   &gc              ,
+        xcb_pixmap_t     &pmap
+);
 void adjust_render_dims(WallpaperConfig& config, const xcb_screen_t* screen);
 void loop_normal(WallpaperConfig& config, cv::VideoCapture& cap, xcb_screen_t* screen, xcb_connection_t* conn, xcb_gcontext_t& gc, xcb_pixmap_t& pmap);
 void loop_slideshow(WallpaperConfig& config, slideshow_paths& cap, xcb_screen_t* screen, xcb_connection_t* conn, xcb_gcontext_t& gc, xcb_pixmap_t& pmap);

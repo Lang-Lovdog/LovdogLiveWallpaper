@@ -5,23 +5,6 @@ extern bool keep_running;
 extern const std::string cava_file;
 extern RuntimeOptions options;
 
-std::vector<MonitorRect> get_active_monitors(xcb_connection_t* conn, xcb_window_t root) {
-    std::vector<MonitorRect> monitors;
-    auto cookie = xcb_randr_get_monitors(conn, root, 1);
-    auto reply = xcb_randr_get_monitors_reply(conn, cookie, NULL);
-
-    if (reply) {
-        auto it = xcb_randr_get_monitors_monitors_iterator(reply);
-        while (it.rem) {
-            xcb_randr_monitor_info_t* info = it.data;
-            monitors.push_back({info->x, info->y, info->width, info->height});
-            xcb_randr_monitor_next(&it);
-        }
-        free(reply);
-    }
-    return monitors;
-}
-
 void setImageXCB(
         cv::Mat               &bgra_frame ,
         const WallpaperConfig &config     ,
@@ -30,20 +13,10 @@ void setImageXCB(
         xcb_gcontext_t   &gc              ,
         xcb_pixmap_t     &pmap
 ){
-    auto active_monitors = get_active_monitors(conn, screen->root);
-
-    for (const auto& mon : active_monitors) {
-        // Aquí calculamos el offset para cada monitor. 
-        // Si quieres que el wallpaper se REPITA en cada uno:
-        
-        xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
-                      config.rn_width, config.rn_height, // Tamaño de tu frame procesado
-                      mon.x + config.x_start,            // Offset del monitor + tu centrado
-                      mon.y + config.y_start, 
-                      0, screen->root_depth,
-                      bgra_frame.total() * bgra_frame.elemSize(), 
-                      bgra_frame.data);
-    }
+    xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
+                  config.rn_width, config.rn_height,
+                  config.x_start, config.y_start, 0, screen->root_depth,
+                  bgra_frame.total() * bgra_frame.elemSize(), bgra_frame.data);
 
     update_root_atoms(conn, screen->root, pmap);
     xcb_flush(conn);
@@ -107,12 +80,7 @@ void loop_normal(
         }
 
         cv::cvtColor(frame, bgra_frame, cv::COLOR_BGR2BGRA);
-        xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
-                      config.rn_width, config.rn_height,
-                      config.x_start, config.y_start, 0, screen->root_depth,
-                      bgra_frame.total() * bgra_frame.elemSize(), bgra_frame.data);
-
-        update_root_atoms(conn, screen->root, pmap);
+        setImageXCB(bgra_frame, config, screen, conn, gc, pmap);
 
         auto end_time = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
@@ -142,12 +110,12 @@ void loop_normal_cava(
 
     int audio_fd = open(cava_file.c_str(), O_RDONLY | O_NONBLOCK);
     int cava_delay_ms = 1000 / config.cava_fps;
-    int ms_acumulados_anim = 0;
-    int ms_acumulados_widg = 0;
     int bars_h = config.rn_height * config.cava_bars_height;
     cv::Rect roi_cava(0, config.rn_height - bars_h, config.rn_width, bars_h);
     std::string current_widget_text = "";
     int ms_por_frame = config.delay_ms-5;
+    int ms_acumulados_anim = 0;
+    int ms_acumulados_widg = 0;
     ms_acumulados_anim=ms_por_frame;
     ms_acumulados_widg=config.widget_delay;
 
@@ -191,13 +159,7 @@ void loop_normal_cava(
         cv::cvtColor(work_frame, bgra_frame, cv::COLOR_BGR2BGRA);
 
         // 4. ENVIAR A X11
-        xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
-                      config.rn_width, config.rn_height,
-                      config.x_start, config.y_start, 0, screen->root_depth,
-                      bgra_frame.total() * bgra_frame.elemSize(), bgra_frame.data);
-
-        update_root_atoms(conn, screen->root, pmap);
-        xcb_flush(conn);
+        setImageXCB(bgra_frame, config, screen, conn, gc, pmap);
 
         auto end_time = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
@@ -231,6 +193,20 @@ void loop_slideshow(
     std::string random_image;
     float fade_step=0.1f;
     fade_step=10/(float)config.transition_delay;
+
+    int audio_fd=-1;
+    if(options.enable_cava){
+        audio_fd = open(cava_file.c_str(), O_RDONLY | O_NONBLOCK);
+        if(audio_fd == -1) options.enable_cava = false;
+    }
+    std::string current_widget_text = "";
+    int bars_h = config.rn_height * config.cava_bars_height;
+    cv::Rect roi_cava(0, config.rn_height - bars_h, config.rn_width, bars_h);
+    int ms_por_frame = config.delay_ms;
+    int ms_acumulados_widg = 0;
+    int pasos_espera = ms_por_frame / (1000 / config.cava_fps); // Calculamos pasos según FPS deseados
+    ms_acumulados_widg=config.widget_delay;
+
     while (keep_running) {
         random_image = slideshow_list[rand() % slideshow_list.size()];
         cv::Mat raw_frame = cv::imread(random_image);
@@ -256,36 +232,64 @@ void loop_slideshow(
             for (float brillo = 0.0f; brillo <= 1.0f && keep_running; brillo += fade_step) {
                 cv::Mat temp_draw = canvas * brillo; // Operación en el lienzo completo
                 cv::Mat bgra_frame;
+                if (options.enable_cava) {
+                    roi_cava &= cv::Rect(0, 0, temp_draw.cols, temp_draw.rows);
+                    if (roi_cava.width > 0 && roi_cava.height > 0) {
+                        get_cava_bars(temp_draw, roi_cava, config, config.cava_num_bars, audio_fd);
+                    }
+                }
+
+                if (options.enable_widgets && ms_acumulados_widg >= config.widget_delay) {
+                    draw_system_widget(temp_draw, config, current_widget_text);
+                }
+
                 cv::cvtColor(temp_draw, bgra_frame, cv::COLOR_BGR2BGRA);
 
-                xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
-                              config.rn_width, config.rn_height,
-                              config.x_start, config.y_start, 0, screen->root_depth,
-                              bgra_frame.total() * bgra_frame.elemSize(), bgra_frame.data);
-
-                update_root_atoms(conn, screen->root, pmap);
-                xcb_flush(conn);
+                setImageXCB(bgra_frame, config, screen, conn, gc, pmap);
                 usleep(config.transition_delay*100); 
             }
         }
 
-        for(int i = 0; i < (config.delay_ms / 100) && keep_running; ++i) {
-            usleep(100000); 
+        for(int i = 0; i < pasos_espera && keep_running; ++i) {
+            cv::Mat work_frame = canvas.clone(); // Usamos el canvas original (brillo 1.0)
+            
+            // Render CAVA
+            if (options.enable_cava) {
+                get_cava_bars(work_frame, roi_cava, config, config.cava_num_bars, audio_fd);
+            }
+
+            // Lógica de Widgets (ms_por_frame / pasos_espera nos da el tiempo real por iteración)
+            if (options.enable_widgets && ms_acumulados_widg >= config.widget_delay) {
+                draw_system_widget(work_frame, config, current_widget_text);
+            }
+
+            // Convertir y Enviar a X11
+            cv::Mat bgra_frame;
+            cv::cvtColor(work_frame, bgra_frame, cv::COLOR_BGR2BGRA);
+            setImageXCB(bgra_frame, config, screen, conn, gc, pmap);
+
+            // Sincronizar con el framerate de CAVA
+            usleep(1000000 / config.cava_fps); 
         }
 
         // --- Inicio de Transición de Brillo (Fade-Out) ---
         for (float brillo = 1.0f; brillo >= 0.0f && keep_running; brillo -= fade_step) {
             cv::Mat temp_draw = canvas * brillo; // Operación en el lienzo completo
             cv::Mat bgra_frame;
+
+            if (options.enable_cava) {
+                roi_cava &= cv::Rect(0, 0, temp_draw.cols, temp_draw.rows);
+                if (roi_cava.width > 0 && roi_cava.height > 0) {
+                    get_cava_bars(temp_draw, roi_cava, config, config.cava_num_bars, audio_fd);
+                }
+            }
+
+            if (options.enable_widgets && ms_acumulados_widg >= config.widget_delay) {
+                draw_system_widget(temp_draw, config, current_widget_text);
+            }
+
             cv::cvtColor(temp_draw, bgra_frame, cv::COLOR_BGR2BGRA);
-
-            xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
-                          config.rn_width, config.rn_height,
-                          config.x_start, config.y_start, 0, screen->root_depth,
-                          bgra_frame.total() * bgra_frame.elemSize(), bgra_frame.data);
-
-            update_root_atoms(conn, screen->root, pmap);
-            xcb_flush(conn);
+            setImageXCB(bgra_frame, config, screen, conn, gc, pmap);
             usleep(config.transition_delay*100); 
         }
     }
