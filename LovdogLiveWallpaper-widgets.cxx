@@ -16,6 +16,7 @@ struct CachedWidget {
 };
 
 static std::map<std::string, CachedWidget> widget_cache;
+std::vector<WidgetElement> active_widgets_list;
 
 // Idea para LovdogLiveWallpaper-widgets.cxx
 /*
@@ -144,9 +145,47 @@ void load_widget_file(const std::string& path, widget_text& text_out) {
     }
 }
 
-void populate_widgets_from_layout(const std::string& layout_line, 
-                                 const WallpaperConfig& cfg, 
-                                 Widgets& widgets_out) {
+void populate_widgets_from_layout(
+    const std::string& layout_line, 
+    const WallpaperConfig& cfg, 
+    Widgets& widgets_out,
+    char &h_gaps
+){
+    widgets_out.clear();
+    h_gaps = 0; // Reset máscara
+
+    // Detectar gaps en los extremos (Bitmasking)
+    if (layout_line.size() >= 2) {
+        if (layout_line.substr(0, 2) == "::") h_gaps |= 0b10;
+        if (layout_line.substr(layout_line.size() - 2) == "::") h_gaps |= 0b01;
+    }
+    
+    size_t start = 0;
+    size_t end = layout_line.find("::");
+
+    while (true) {
+        std::string token = layout_line.substr(start, (end == std::string::npos) ? std::string::npos : end - start);
+        trim_string(token);
+
+        // Solo agregamos si hay contenido real. Los :: vacíos ya los marcó h_gaps.
+        if (!token.empty()) {
+            std::string full_path = (token[0] == '/') ? token : cfg.prefix + token;
+            widget_text current_content;
+            load_widget_file(full_path, current_content);
+            widgets_out.push_back(std::move(current_content)); 
+        }
+
+        if (end == std::string::npos) break;
+        start = end + 2;
+        end = layout_line.find("::", start);
+    }
+}
+
+void _populate_widgets_from_layout(
+        const std::string& layout_line, 
+        const WallpaperConfig& cfg, 
+        Widgets& widgets_out
+){
     widgets_out.clear();
     
     size_t start = 0;
@@ -265,6 +304,106 @@ void assemble_widgets_row(const Widgets& widgets, const WallpaperConfig& cfg, wi
 static cv::Ptr<cv::freetype::FreeType2> ft2;
 
 void render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int& y_cursor) {
+    std::vector<std::string> layout_lines;
+    
+    // Rápido: Leer archivo y cerrar
+    {
+        std::ifstream file(config.widgets_file);
+        if (!file.is_open()) return;
+        std::string l;
+        while (std::getline(file, l)) {
+            trim_string(l);
+            if (!l.empty() && l[0] != '#') layout_lines.push_back(l);
+        }
+    } // El archivo se cierra aquí automáticamente
+
+    int row_idx = 0;
+    for (const auto& line : layout_lines) {
+        Widgets row_widgets;
+        char h_gaps = 0;
+        populate_widgets_from_layout(line, config, row_widgets, h_gaps);
+
+        // --- Procesamiento de la fila hacia WidgetElements ---
+        std::vector<WidgetElement> elements;
+        int total_row_w = 0;
+        int max_row_h = 0;
+        int line_h = config.widget_font_px + 0;
+
+        for (size_t i = 0; i < row_widgets.size(); ++i) {
+            WidgetElement el;
+            el.widget = std::move(row_widgets[i]);
+            el.position = h_gaps;
+            el.ttl = 15;
+            el.background_opacity = 0.45f;
+            el.border_opacity = 1.0f;
+            el.border_color = cv::Scalar(255, 255, 0);
+
+            // Medir dimensiones
+            int max_w = 0;
+            for (const auto& txt : el.widget) {
+                int bl = 0;
+                cv::Size sz = ft2->getTextSize(txt, config.widget_font_px, -1, &bl);
+                if (sz.width > max_w) max_w = sz.width;
+            }
+            el.box_width = max_w + 20;
+            el.box_height = (el.widget.size() * line_h) + 10;
+            
+            if (el.box_height > max_row_h) max_row_h = el.box_height;
+            total_row_w += el.box_width;
+            elements.push_back(std::move(el));
+        }
+
+        // --- Cálculo de Posiciones (Usando tu lógica de Switch) ---
+        int gap = (config.widget_box_sw == -1) ? 20 : (config.widget_box_sw * 10);
+        int start_x = config.rn_width * config.widget_x_prop;
+        int right_limit = config.rn_width - start_x;
+        int current_x = start_x;
+
+        if (!elements.empty()) {
+            int active = elements.size();
+            switch (h_gaps) {
+                case 0b11: // Centrado
+                    current_x = (config.rn_width - (total_row_w + (active - 1) * gap)) / 2;
+                    break;
+                case 0b10: // Derecha
+                    current_x = right_limit - (total_row_w + (active - 1) * gap);
+                    break;
+                case 0b00: // Repartido
+                    if (config.widget_box_sw == -1 && active > 1)
+                        gap = (right_limit - start_x - total_row_w) / (active - 1);
+                    break;
+            }
+
+            // --- Renderizado de los elementos calculados ---
+            for (auto& el : elements) {
+                el.box_x = current_x;
+                el.box_y = y_cursor - config.widget_font_px;
+
+                cv::Rect roi(el.box_x, el.box_y, el.box_width, el.box_height);
+                roi &= cv::Rect(0, 0, frame.cols, frame.rows);
+
+                if (roi.width > 0 && roi.height > 0) {
+                    cv::Mat sub = frame(roi);
+                    cv::Mat overlay(sub.size(), sub.type(), cv::Scalar(0,0,0));
+                    cv::addWeighted(overlay, el.background_opacity, sub, 1.0f - el.background_opacity, 0, sub);
+                    cv::rectangle(frame, roi, el.border_color, 1);
+
+                    int ty = y_cursor;
+                    for (const auto& txt : el.widget) {
+                        ft2->putText(frame, txt, cv::Point(el.box_x + 10, ty), 
+                                     config.widget_font_px, cv::Scalar(255,255,255), -1, cv::LINE_AA, true);
+                        ty += line_h;
+                    }
+                }
+                current_x += el.box_width + gap;
+            }
+        }
+        y_cursor += max_row_h + (config.widget_box_sh * 10);
+        row_idx++;
+    }
+}
+
+void __render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int& y_cursor) {
     std::ifstream layout_file(config.widgets_file);
     if (!layout_file.is_open()) return;
 
@@ -277,7 +416,7 @@ void render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int&
         if (line.empty() || line[0] == '#') continue;
 
         Widgets current_row;
-        populate_widgets_from_layout(line, config, current_row);
+        _populate_widgets_from_layout(line, config, current_row);
 
         // --- 1. PRE-CÁLCULO DE ANCHOS PARA ESPACIADO ---
         std::vector<int> col_widths;
@@ -317,14 +456,47 @@ void render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int&
             row_data.push_back(display_text);
         }
 
-        // --- 2. CÁLCULO DEL GAP (Espaciado) ---
-        int gap = (config.widget_box_sw * 10);
-        int current_x = start_x;
-        int available_w = config.rn_width - (start_x * 2); // Asumiendo margen simétrico
 
-        if (config.widget_box_sw == -1 && col_widths.size() > 1) {
-            gap = (available_w - total_widgets_w) / (int)(col_widths.size() - 1);
-            if (gap < 0) gap = 10; // Fallback si son demasiados widgets
+        // --- 2. CÁLCULO DE ALINEACIÓN SEGÚN PLACEHOLDERS ---
+        // 2.1. Construir la máscara de bits
+        // 0b10 (2) -> Gap al inicio
+        // 0b01 (1) -> Gap al final
+        // 0b11 (3) -> Gap en ambos (Centrado)
+        // 0b00 (0) -> Sin gaps (Repartido/Izquierda)
+        unsigned char gap_found = 0b00;
+        if (current_row.front().empty()) gap_found |= 0b10;
+        if (current_row.back().empty())  gap_found |= 0b01;
+
+        int gap = (config.widget_box_sw == -1) ? 20 : (config.widget_box_sw * 10);
+        int current_x = start_x;
+        int right_limit = config.rn_width - start_x;
+        int available_w = right_limit - start_x;
+        int active_widgets = 0;
+
+        for(const auto& w : row_data) if(!w.empty()) active_widgets++;
+
+        if (active_widgets > 0) {
+            switch (gap_found) {
+                case 0b11: // :: elem :: -> CENTRADO
+                    current_x = (config.rn_width - (total_widgets_w + (active_widgets - 1) * gap)) / 2;
+                    break;
+
+                case 0b10: // :: elem -> DERECHA
+                    current_x = right_limit - (total_widgets_w + (active_widgets - 1) * gap);
+                    break;
+
+                case 0b01: // elem :: -> IZQUIERDA
+                    current_x = start_x;
+                    break;
+
+                case 0b00: // elem1 elem2 -> REPARTIDO o IZQUIERDA
+                default:
+                    current_x = start_x;
+                    if (config.widget_box_sw == -1 && active_widgets > 1) {
+                        gap = (available_w - total_widgets_w) / (active_widgets - 1);
+                    }
+                    break;
+            }
         }
 
         // --- 3. DIBUJO REAL ---
@@ -374,7 +546,7 @@ void _render_widget_from_file(cv::Mat& frame, const WallpaperConfig& config, int
         if (line.empty() || line[0] == '#') continue;
 
         Widgets current_row;
-        populate_widgets_from_layout(line, config, current_row);
+        _populate_widgets_from_layout(line, config, current_row);
 
         int current_x = start_x;
         int max_row_h = 0;

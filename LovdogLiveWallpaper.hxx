@@ -4,6 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include <unistd.h>
 #include <fcntl.h>
+#include <xcb/randr.h>
 #include <fstream>
 #include <sys/types.h>
 #include <getopt.h>
@@ -84,6 +85,26 @@ struct WallpaperConfig {
     std::string  widget_cmd        = ""                        ;
 };
 
+struct WidgetElement {
+    widget_text      widget             ;
+    char             position           ;
+    int              box_width          ;
+    int              box_height         ;
+    int              box_x              ;
+    int              box_y              ;
+    cv::Scalar       border_color       ;
+    cv::Scalar       background_color   ;
+    float            background_opacity ;
+    float            border_opacity     ;
+    int              ttl                ; // Time To Live (15 iterations)
+    std::string      name               ;
+};
+
+struct MonitorRect {
+    int16_t x, y;
+    uint16_t w, h;
+};
+
 typedef std::vector<std::string> slideshow_paths;
 
 // General control routines
@@ -92,6 +113,8 @@ void parse_args(int argc, char** argv, WallpaperConfig& config);
 void handle_stop_previous();
 void register_current_pid();
 void update_root_atoms(xcb_connection_t* conn, xcb_window_t root, xcb_pixmap_t pmap);
+void setImageXCB();
+std::vector<MonitorRect> get_active_monitors(xcb_connection_t* conn, xcb_window_t root);
 // Input routines (data loading)
 std::string find_wallpaper_path(const std::string& name);
 bool load_descriptor(const std::string& file, const std::string& id, WallpaperConfig& config);
@@ -127,9 +150,17 @@ void draw_bar(cv::Mat& bars_mat, const WallpaperConfig& config, int num_bars, in
 size_t visual_width(const std::string& s);
 void trim_string(std::string& s);
 void load_widget_file(const std::string& path, widget_text& text_out);
-void populate_widgets_from_layout(const std::string& layout_line, 
-                                 const WallpaperConfig& cfg, 
-                                 Widgets& widgets_out);
+void populate_widgets_from_layout(
+    const std::string& layout_line, 
+    const WallpaperConfig& cfg, 
+    Widgets& widgets_out,
+    char &h_gaps
+);
+void _populate_widgets_from_layout(
+    const std::string& layout_line, 
+    const WallpaperConfig& cfg, 
+    Widgets& widgets_out
+);
 void compute_max_width(const Widgets& widgets, size_t& max_w_out);
 void compute_max_height(const Widgets& widgets, size_t& max_h_out);
 std::string utf8_safe_substr(const std::string& s, size_t max_v_w);

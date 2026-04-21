@@ -5,6 +5,50 @@ extern bool keep_running;
 extern const std::string cava_file;
 extern RuntimeOptions options;
 
+std::vector<MonitorRect> get_active_monitors(xcb_connection_t* conn, xcb_window_t root) {
+    std::vector<MonitorRect> monitors;
+    auto cookie = xcb_randr_get_monitors(conn, root, 1);
+    auto reply = xcb_randr_get_monitors_reply(conn, cookie, NULL);
+
+    if (reply) {
+        auto it = xcb_randr_get_monitors_monitors_iterator(reply);
+        while (it.rem) {
+            xcb_randr_monitor_info_t* info = it.data;
+            monitors.push_back({info->x, info->y, info->width, info->height});
+            xcb_randr_monitor_next(&it);
+        }
+        free(reply);
+    }
+    return monitors;
+}
+
+void setImageXCB(
+        cv::Mat               &bgra_frame ,
+        const WallpaperConfig &config     ,
+        xcb_screen_t          *screen     ,
+        xcb_connection_t      *conn       ,
+        xcb_gcontext_t   &gc              ,
+        xcb_pixmap_t     &pmap
+){
+    auto active_monitors = get_active_monitors(conn, screen->root);
+
+    for (const auto& mon : active_monitors) {
+        // Aquí calculamos el offset para cada monitor. 
+        // Si quieres que el wallpaper se REPITA en cada uno:
+        
+        xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
+                      config.rn_width, config.rn_height, // Tamaño de tu frame procesado
+                      mon.x + config.x_start,            // Offset del monitor + tu centrado
+                      mon.y + config.y_start, 
+                      0, screen->root_depth,
+                      bgra_frame.total() * bgra_frame.elemSize(), 
+                      bgra_frame.data);
+    }
+
+    update_root_atoms(conn, screen->root, pmap);
+    xcb_flush(conn);
+}
+
 void clean_screen(
     WallpaperConfig &config,
     xcb_screen_t    *screen,
