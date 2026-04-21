@@ -45,41 +45,45 @@ struct RuntimeOptions {
 
 struct WallpaperConfig {
     std::string  path;
-    int          delay_ms          = 33                        ;
-    int          media_fps         = 30                        ;
-    int          transition_delay  = 5000                      ;
-    int          cava_fps          = 24                        ;
-    int          width             = 1920                      ;
-    int          height            = 1080                      ;
-    int          rn_width          = 1920                      ;
-    int          rn_height         = 1080                      ;
-    int          x_start           = 0                         ;
-    int          y_start           = 0                         ;
-    int          widget_delay      = 90                        ;
-    float        widget_x_prop     = 0.05f                     ;
-    float        widget_y_prop     = 0.05f                     ;
-    float        widget_font_px    = 12.0f                     ;
-    std::string  widget_font       = ""                        ;
-    int          widget_text_border= 2                         ;
-    int          widget_box_w      = 0                         ;
-    int          widget_box_h      = 0                         ;
-    int          widget_box_sw     = 1                         ;
-    int          widget_box_sh     = 1                         ;
-    std::string  sep_fill          = " "                       ;
-    std::string  prefix            =
-                   "/tmp/lovdog_live_wallpaper/w_fifo"         ; 
-    std::string  widgets_file      =
+    int          delay_ms                  = 33                           ;
+    int          media_fps                 = 30                           ;
+    int          transition_delay          = 5000                         ;
+    int          cava_fps                  = 24                           ;
+    int          width                     = 1920                         ;
+    int          height                    = 1080                         ;
+    int          rn_width                  = 1920                         ;
+    int          rn_height                 = 1080                         ;
+    int          x_start                   = 0                            ;
+    int          y_start                   = 0                            ;
+    int          widget_delay              = 90                           ;
+    float        widget_x_prop             = 0.05f                        ;
+    float        widget_y_prop             = 0.05f                        ;
+    float        widget_font_px            = 12.0f                        ;
+    std::string  widget_font               = ""                           ;
+    int          widget_text_border        = 2                            ;
+    int          widget_box_w              = 0                            ;
+    int          widget_box_h              = 0                            ;
+    int          widget_box_sw             = 1                            ;
+    int          widget_box_sh             = 1                            ;
+    cv::Scalar   widget_border_color       = cv::Scalar(255, 255, 000)    ;
+    cv::Scalar   widget_background_color   = cv::Scalar(255, 000, 255)    ;
+    float        widget_background_opacity = 0.5                          ;
+    std::string  sep_fill                  = " "                          ;
+    std::string  prefix                    =
+                   "/tmp/lovdog_live_wallpaper/w_fifo"                    ; 
+    std::string  widgets_file              =
                     std::string(getenv("HOME")) +
-                    "/.config/LovdogLiveWallpaper/widgets"     ;
-    int          cava_num_bars     = 64                        ;
-    float        cava_bars_height  = 0.25f                     ;
-    cv::Scalar   cava_color        = cv::Scalar(200, 100, 050) ;
-    cv::Scalar   cava_rgb_min      = cv::Scalar(000, 000, 000) ; // Color base
-    cv::Scalar   cava_rgb_max      = cv::Scalar(255, 255, 255) ; // Color fin del rango
-    bool         cava_random_color = false                     ;
-    int          rn_type           = SCREEEN_FILL              ;
-    size_t       in_type           = TYPE_NONE                 ;
-    std::string  widget_cmd        = ""                        ;
+                    "/.config/LovdogLiveWallpaper/widgets"                ;
+    int          cava_num_bars             = 64                           ;
+    float        cava_bars_height          = 0.25f                        ;
+    cv::Scalar   cava_color                = cv::Scalar(200, 100, 050)    ;
+    cv::Scalar   cava_rgb_min              = cv::Scalar(000, 000, 000)    ; // Color base
+    cv::Scalar   cava_rgb_max              = cv::Scalar(255, 255, 255)    ; // Color fin del rango
+    bool         cava_random_color         = false                        ;
+    int          delay_compensation        = 1                            ;
+    int          rn_type                   = SCREEEN_FILL                 ;
+    size_t       in_type                   = TYPE_NONE                    ;
+    std::string  widget_cmd                = ""                           ;
 };
 
 typedef std::vector<std::string> widget_text;

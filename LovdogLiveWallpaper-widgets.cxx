@@ -10,45 +10,6 @@
 #include "LovdogLiveWallpaper.hxx"
 #include "opencv2/imgproc.hpp"
 
-struct CachedWidget {
-    widget_text content;
-    int ttl; // Time To Live (15 iteraciones)
-};
-
-static std::map<std::string, CachedWidget> widget_cache;
-bool read_widgets = false;
-
-// Idea para LovdogLiveWallpaper-widgets.cxx
-/*
-std::string get_command_output(const char* cmd) {
-    char buffer[128];
-    std::string result = "";
-    FILE* pipe = popen(cmd, "r");
-    if (!pipe) return "Error";
-    while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-        result += buffer;
-    }
-    pclose(pipe);
-    return result;
-}
-
-std::string fetch_khal_agenda() {
-    // El comando que ya te funcionó
-    std::string command = "khal list today 7days --format '{title}'";
-    std::array<char, 128> buffer;
-    std::string result;
-    
-    // Abrimos el pipe de lectura
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
-    if (!pipe) return "Error al abrir khal";
-
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-        result += buffer.data();
-    }
-    return result;
-}
-*/
-
 struct PcloseDeleter {
     void operator()(FILE* f) const {
         if (f) pclose(f);
@@ -160,9 +121,6 @@ WidgetElement& find_or_create_element(const std::string& name, std::list<WidgetE
     new_el.ttl = 15;     // Valor por defecto o desde config
     
     std::cout << "\nWidget '" << name << "' created.\n";
-    new_el.border_color      = cv::Scalar(255, 255, 0);
-    new_el.background_color  = cv::Scalar(255, 0, 255);
-    new_el.background_opacity=0.4;
     active_widgets_list.push_back(std::move(new_el));
     return active_widgets_list.back();
 }
@@ -193,74 +151,6 @@ void load_widget_from_fifo(int fd, widget_text& out) {
     }
 }
 
-void ___load_widget_from_fifo(int fd, widget_text& out) {
-    char buffer[4096];
-    ssize_t bytes = read(fd, buffer, sizeof(buffer) - 1);
-    
-    if (bytes > 0) {
-        buffer[bytes] = '\0';
-        std::string raw_data(buffer);
-
-        // Solo actualizamos si recibimos algo que parezca un mensaje completo
-        // O al menos, no limpiamos si lo que llegó es muy pequeño/incompleto
-        if (raw_data.length() > 5) { 
-            out.clear();
-            std::stringstream ss(raw_data);
-            std::string line;
-            while (std::getline(ss, line)) {
-                if(!line.empty()) out.push_back(line);
-            }
-        }
-    }
-    // Si bytes <= 0 (EAGAIN), no tocamos 'out', manteniendo el caché.
-}
-
-void __load_widget_from_fifo(int fd, widget_text& out) {
-    char buffer[4096];
-    // O_NONBLOCK hace que esto regrese inmediatamente
-    ssize_t bytes = read(fd, buffer, sizeof(buffer) - 1);
-    
-    if (bytes > 0) {
-        buffer[bytes] = '\0';
-        std::string raw_data(buffer);
-
-        // OPCIÓN A: Solo limpiar si el mensaje parece "nuevo" o completo
-        // (Por ejemplo, si tu script de bash manda un carácter especial al inicio)
-        
-        // OPCIÓN B: Simplemente procesar el bloque completo
-        std::vector<std::string> new_lines;
-        std::stringstream ss(raw_data);
-        std::string line;
-        while (std::getline(ss, line)) {
-            // Opcional: limpiar caracteres ANSI o basura aquí
-            if (!line.empty()) new_lines.push_back(line);
-        }
-
-        if (!new_lines.empty()) {
-            out = std::move(new_lines); // Reemplazo atómico
-        }
-    }
-    // Si bytes <= 0, no entramos aquí y el widget mantiene 
-    // lo que leyó en el frame anterior (Caché persistente)
-}
-
-void _load_widget_from_fifo(int fd, widget_text& out) {
-    char buffer[4096]; // Suficiente para el reporte de Salamanca
-    ssize_t bytes = read(fd, buffer, sizeof(buffer) - 1);
-    
-    if (bytes > 0) {
-        buffer[bytes] = '\0';
-        out.clear();
-        // Convertir el buffer en líneas para tu vector widget_text
-        std::stringstream ss(buffer);
-        std::string line;
-        while (std::getline(ss, line)) {
-            out.push_back(line);
-        }
-    }
-    // Si bytes <= 0, no hacemos nada: mantenemos el contenido anterior (Caché)
-}
-
 void populate_widgets_from_layout(
     const std::string& layout_line, 
     const WallpaperConfig& cfg, 
@@ -288,6 +178,9 @@ void populate_widgets_from_layout(
             // 1. Intentamos encontrar si este elemento ya existe en nuestra lista persistente
             WidgetElement& el = find_or_create_element(token, active_widgets_list);
             el.ttl = 15;
+            el.border_color       = cfg.widget_border_color      ;
+            el.background_color   = cfg.widget_background_color  ;
+            el.background_opacity = cfg.widget_background_opacity;
 
             // 2. Si el FIFO no está abierto, lo abrimos una sola vez
             if (el.fifo_fd == -1) {
@@ -506,27 +399,6 @@ void draw_single_widget(cv::Mat& frame, const WidgetElement& el, const Wallpaper
         ft2->putText(frame, txt, cv::Point(el.box_x + 10, ty), 
                      config.widget_font_px, cv::Scalar(255,255,255), -1, cv::LINE_AA, true);
         ty += line_h;
-    }
-}
-
-void _draw_single_widget(cv::Mat& frame, const WidgetElement& el, const WallpaperConfig& config) {
-    cv::Rect roi(el.box_x, el.box_y, el.box_width, el.box_height);
-    roi &= cv::Rect(0, 0, frame.cols, frame.rows);
-
-    if (roi.width <= 0 || roi.height <= 0) return;
-
-    // Fondo y borde
-    cv::Mat sub = frame(roi);
-    cv::Mat overlay(sub.size(), sub.type(), el.background_color);
-    cv::addWeighted(overlay, el.background_opacity, sub, 1.0f - el.background_opacity, 0, sub);
-    cv::rectangle(frame, roi, el.border_color, 1);
-
-    // Texto
-    int ty = el.box_y + config.widget_font_px + 5;
-    for (const auto& txt : el.widget) {
-        ft2->putText(frame, txt, cv::Point(el.box_x + 10, ty), 
-                     config.widget_font_px, cv::Scalar(255,255,255), -1, cv::LINE_AA, true);
-        ty += (config.widget_font_px + 2);
     }
 }
 

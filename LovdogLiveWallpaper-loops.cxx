@@ -108,7 +108,7 @@ void loop_normal_cava(
     int bars_h = config.rn_height * config.cava_bars_height;
     cv::Rect roi_cava(0, config.rn_height - bars_h, config.rn_width, bars_h);
     std::string current_widget_text = "";
-    int ms_por_frame = config.delay_ms-5;
+    int ms_por_frame = config.delay_ms-config.delay_compensation;
     int ms_acumulados_anim = 0;
     std::list<WidgetElement> active_widgets_list;
     ms_acumulados_anim=ms_por_frame;

@@ -3,61 +3,63 @@
 tmp_dir='/tmp/lovdog_live_wallpaper'
 pid_file="$tmp_dir/widgets.pid"
 file_lock="$tmp_dir/widgets_continue"
+widget_prefix="$tmp_dir/w_fifo"
 
-# --- Lógica de Bloqueo de PID ---
+mkdir -p "$tmp_dir"
+touch "$file_lock"
+
+# --- Lógica de Bloqueo de PID (Igual) ---
 if [ -f "$pid_file" ]; then
     old_pid=$(cat "$pid_file")
-    # Verificar si el proceso realmente existe
     if ps -p "$old_pid" > /dev/null 2>&1; then
-        echo "Ya hay una instancia de widgets corriendo (PID: $old_pid). Saliendo."
+        echo "Instancia activa (PID: $old_pid). Saliendo."
         exit 0
     fi
 fi
-
-# Registrar el PID actual
 echo $$ > "$pid_file"
 
-# Limpieza al salir (trampa para señales)
 cleanup() {
+    echo "Limpiando..."
     rm -f "$pid_file" "$file_lock"
-    pkill -P $$ # Mata a todos los hijos (khal, wttr, etc.)
+    pkill -P $$ 
     exit 0
 }
-
 trap cleanup SIGINT SIGTERM EXIT
-# --------------------------------
 
-# Función para crear el FIFO si no existe
 prepare_fifo() {
     [ ! -p "$1" ] && mkfifo "$1"
 }
 
-# Preparamos todos los pipes
+# Inicializar FIFOs y evitar bloqueos
 for w in khal todo wttr1 wttrin sensors; do
-    prepare_fifo "${widget_prefix}_$w"
+    pipe="${widget_prefix}_$w"
+    prepare_fifo "$pipe"
+    # Abrimos un descriptor de lectura persistente en segundo plano 
+    # para que los 'echo' no se bloqueen nunca
+    cat "$pipe" > /dev/null & 
 done
 
+cd $(dirname "${BASH_SOURCE[0]}")
+
+echo "Widgets iniciados..."
+
 while [ -f "$file_lock" ]; do
-  # Usamos redirección con '>' pero de forma no bloqueante 
-  # o asegurando que el C++ esté listo.
+  # Ejecutar actualizaciones
+  ( khal calendar --format "{start-time} {title}" now 7d > "${widget_prefix}_khal" 2>/dev/null ) &
+  ( todo > "${widget_prefix}_todo" 2>/dev/null ) &
   
-  (khal calendar --format "{start-time} {title}" now 7d > "${widget_prefix}_khal") &
-  (todo > "${widget_prefix}_todo") &
-  # Reporte de una línea (Salamanca)
   (
-    # Guardamos todo en la variable 'out'
     out=$(./get_wttr)
-    # Solo escribimos al FIFO si logramos obtener datos
     [[ -n "$out" ]] && echo "$out" > "${widget_prefix}_wttrin"
   ) &
 
-  # Clima completo (wttr.in)
   (
     out=$(curl -s 'wttr.in/Salamanca?T&3')
     [[ -n "$out" ]] && echo "$out" > "${widget_prefix}_wttr1"
   ) &
-  (./llw-sensors > "${widget_prefix}_sensors") &
 
-  wait # Esperamos a que los subprocesos terminen de escribir en los pipes
-  sleep 3s
+  ( ./llw-sensors > "${widget_prefix}_sensors" 2>/dev/null ) &
+
+  # Esperar un máximo de 5 segundos para no trabar el loop si un pipe se bloquea
+  sleep 3
 done
