@@ -8,9 +8,10 @@
 |-- LovdogLiveWallpaper.hxx > Cabecera del programa ||
 |-- LovdogLiveWallpaper-sensors.hxx > Definiciones de funciones del programa integración de CAVA ||
 |-- LovdogLiveWallpaper.cxx > Definiciones de funciones del programa general ||
+|-- LovdogLiveWallpaper-cmd.cxx > Definiciones de funciones del programa send commands to llw ||
 |-- LovdogLiveWallpaper-cava.cxx > Definiciones de funciones del programa integración de CAVA ||
-|-- LovdogLiveWallpaper-widgets.cxx > Definiciones de funciones del programa integración de CAVA ||
-|-- LovdogLiveWallpaper-sensors.cxx > Definiciones de funciones del programa integración de CAVA ||
+|-- LovdogLiveWallpaper-widgets.cxx > Definiciones de funciones del programa widgets [fifo y cmd] ||
+|-- LovdogLiveWallpaper-sensors.cxx > Definiciones de funciones del programa (aislado como llw-sensors) ||
 |-- LovdogLiveWallpaper-frame-preprocess.cxx > Definiciones de funciones del programa ||
 |-- LovdogLiveWallpaper-loops.cxx > Definiciones de funciones del programa ciclos de despliegue en pantalla ||
 |-- LovdogLiveWallpaper-conf_file.cxx > Definiciones de funciones del programa ciclos de despliegue en pantalla ||

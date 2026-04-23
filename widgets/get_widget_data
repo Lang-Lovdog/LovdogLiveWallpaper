@@ -30,8 +30,10 @@ prepare_fifo() {
     [ ! -p "$1" ] && mkfifo "$1"
 }
 
+#### DENTRO DEL FOR, INTEGRAR EL ID DEL WIDGET ####
+
 # Inicializar FIFOs y evitar bloqueos
-for w in khal todo wttr1 wttrin sensors; do
+for w in khal todo wttr1 wttrin sensors notibash; do
     pipe="${widget_prefix}_$w"
     prepare_fifo "$pipe"
     # Abrimos un descriptor de lectura persistente en segundo plano 
@@ -43,22 +45,24 @@ cd $(dirname "${BASH_SOURCE[0]}")
 
 echo "Widgets iniciados..."
 
+
+#### INTEGRAR AQUÍ SUS WIDGETS ####
+
+
 while [ -f "$file_lock" ]; do
   # Ejecutar actualizaciones
-  ( khal calendar --format "{start-time} {title}" now 7d > "${widget_prefix}_khal" 2>/dev/null ) &
+  ( ./khal_widget > "${widget_prefix}_khal" 2>/dev/null ) &
   ( todo > "${widget_prefix}_todo" 2>/dev/null ) &
+
+  pgrep -x llw-sensors >/dev/null || (./llw-sensors > "${widget_prefix}_sensors" 2>/dev/null )&
   
   (
-    out=$(./get_wttr)
-    [[ -n "$out" ]] && echo "$out" > "${widget_prefix}_wttrin"
+    out1=$(./get_wttr)
+    out2=$(curl -s 'wttr.in/?T&3')
+    [[ -n "$out1" ]] && echo "$out1" > "${widget_prefix}_wttrin"
+    [[ -n "$out2" ]] && echo "$out2" >> "${widget_prefix}_wttrin"
   ) &
 
-  (
-    out=$(curl -s 'wttr.in/Salamanca?T&3')
-    [[ -n "$out" ]] && echo "$out" > "${widget_prefix}_wttr1"
-  ) &
-
-  ( ./llw-sensors > "${widget_prefix}_sensors" 2>/dev/null ) &
 
   # Esperar un máximo de 5 segundos para no trabar el loop si un pipe se bloquea
   sleep 3

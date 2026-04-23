@@ -15,6 +15,9 @@ const std::string cava_file="/tmp/cava_fifo";
 
 
 typedef int fifo_t;
+typedef std::vector<std::string> widget_text;
+typedef std::vector<std::string> widget_conf;
+typedef std::vector<widget_text> Widgets;
 
 enum InputType : size_t {
     TYPE_NONE        = 0b00000,
@@ -30,6 +33,14 @@ enum RenderType : char {
     SCREEEN_STRETCH = 0b0010,
 };
 
+enum CommandSent : unsigned int {
+    COMMAND_RELOAD_WIDGETS  = 0b000001,
+    COMMAND_RELOAD_CONFIG   = 0b000010,
+    COMMAND_TOGGLE_CAVA     = 0b000100,
+    COMMAND_TOGGLE_WIDGET   = 0b001000,
+    COMMAND_STOP_LLW        = 0b010000,
+};
+
 struct RuntimeOptions {
     bool        stop_previous      = false ;
     std::string descriptor_file            ;
@@ -40,6 +51,10 @@ struct RuntimeOptions {
     bool        use_cava_range     = false ;
     bool        use_cava_adaptive  = false ;
     bool        enable_widgets     = false ;
+    widget_conf widget_config              ;
+    fifo_t      fifo_fd            = -1    ;
+    bool        keep_running       = true  ;
+    
     // ... otros flags
 };
 
@@ -86,8 +101,6 @@ struct WallpaperConfig {
     std::string  widget_cmd                = ""                           ;
 };
 
-typedef std::vector<std::string> widget_text;
-typedef std::vector<widget_text> Widgets;
 struct WidgetElement {
     widget_text      widget                ;
     char             position              ;

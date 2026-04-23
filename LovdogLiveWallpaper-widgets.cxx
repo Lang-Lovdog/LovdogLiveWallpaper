@@ -310,7 +310,7 @@ void update_widgets_layout(cv::Mat& frame, const WallpaperConfig& config, int& y
         }
     }
 
-    int line_h = config.widget_font_px + 2; // Un pequeño margen entre líneas
+    int line_h = config.widget_font_px; // Un pequeño margen entre líneas
 
     for (const auto& line : layout_lines) {
         Widgets_t row_widgets; // Vector de punteros WidgetElement*

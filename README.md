@@ -12,6 +12,8 @@ About `xwinwrap`, there's an important problem for any tiling window like `zwm` 
 
 ![Example](./img/CavaScreenShot.png "My desktop with LLW integrated with CAVA")
 
+[![Demo](./img/llwFullDemo.gif "Demo of LLW with Widgets and CAVA")](https://raw.githubusercontent.com/Lang-Lovdog/LovdogLiveWallpaper/original/img/llwFullDemo.mp4)
+
 ## Small documentation
 
 ### Compilation stuff
@@ -111,7 +113,7 @@ Since I'm in masters studies toward research curriculum I cannot assure I'll add
 [ x ] Add screen pixmap resizing options
 [ x ] Add CAVA-like visualization
 [ x ] Add slideshow
-[  ] Add system info monitoring
+[  ] Add system info monitoring:  Widget support opened the doors for this one :3
 [ x ] Add widget-like element
 
 
@@ -121,4 +123,74 @@ As the obsessive wolf I am, and with the high amount of ideas here's a list of m
  - Pop up notifications
  - Add mpv-like yt-dlp support for online videos
  - Add sound support if music/fx synced with wallpaper
+
+
+### Widgets Utilities present
+
+- SetDescriptorLLW: Opens normal LLW
+- SetUpCavaLLW: Opens LLW with CAVA integration
+- SetUpWidgetsLLW: Open LLW with Widgets
+- SetUpWidgetsCavaLLW: Opens LLW with CAVA integration and Widgets
+All `Set*LLW` will be replaced by llw-manager in a future (hopefully).
+
+- widgets/get_widgets_data: is just a bash script to send widgets to fifo elements in /tmp/LovdogLiveWallpaper (future releases will be an actual command output manager called llw-widgets)
+- widgets/khal_widget: Customized khal integration to widget (requires right iso week number and firstday monthname in khal config)
+- widgets/get_wttr: The less conflicting widget, just weather in a simple 4 rows format
+- widgets/llw-sensors: C++ implementation to get current cpu usage and temperature as well as battery. Requires `sensors-devel` to be compiled.
+
+As you can see, most of widgets are actually very flavoured to my taste. So they aren't plug and play since further configurations or dependencies are required.
+
+`llw` widget support are only non-formatted text output (further format options are in my mind but shall disappoint).
+
+### Can I make my own widget? Yeah!
+If you want to make your own widget this should be an scripted process involving `fifo` making and a constant info dumping.
+In my experience, the best way to do it if your command does not send the full dump in one shot, you shall take the output into a bash variable and `echo` with the vairable quoted.
+
+#### A very **Simple** example of wttr.in widget
+```
+#!/bin/bash
+
+#### Here, the wttrin is the id to be used in widgets config file
+#### The file searches for any /tmp/lovdog_live_wallpaper/w_fifo_* file
+#### and displays its content once the widgets file shows its id
+fifo_file=/tmp/lovdog_live_wallpaper/w_fifo_wttrin
+mkfifo "$fifo_file"
+
+keep_running=1
+
+#### Maybe not needed, but keeps opened until some routine writes the file
+cat "$fifo_file" > /dev/null &
+
+### Please handle instance exit and stuff for redundant processes concurence problem avoiding.
+### And to avoid any orphan zombiing
+trap ExitHandler INT
+trap ExitHandler EXIT
+
+ExitHandler(){
+  keep_running=0
+}
+
+while [ $keep_running -eq 1 ]; do
+  weather_report="$(curl wttr.in/T&2 2>/dev/null)"
+
+  echo "$weather_report" > "$fifo_file"
+done
+
+rm "$fifo_file"
+exit
+```
+
+Then in the `widgets` file `$HOME/.config/LovdogLiveWallpaper/widgets`
+Suppose there are other widgets `todo`, `sensors`, `cava`, `mff_dates`, `fwa_dates`.
+The separator is `::` but it also provides **very basic** formatting.
+For example,
+Centered `wttrin` in the first row.
+`fwa_dates` and `mff_dates` in the second row. Placed left.
+`todo`, `sensors` and `cava`. Evenly spaced.
+```
+:: wttrin ::
+fwa_dates :: mff_dates ::
+todo :: sensors :: cava
+```
+Yup, if you thought the `::` can act as some kind of gap placeholder, you're kinda right. THE FORMATTING IS ONLY AVAILABLE IF **NO BOX MARGIN IS GIVEN: `box_sw=-1`** at this point, this is modifiable only in code (but it's modifiable) and the default behaviour is the explained above.
 
