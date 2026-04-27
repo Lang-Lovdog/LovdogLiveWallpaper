@@ -12,6 +12,8 @@ About `xwinwrap`, there's an important problem for any tiling window like `zwm` 
 
 ![Example](./img/CavaScreenShot.png "My desktop with LLW integrated with CAVA")
 
+![Example](./img/CavaScreenShot-16bit-color.png "My desktop with LLW integrated with CAVA and Widget 16-bit color")
+
 [![Demo](./img/llwFullDemo.gif "Demo of LLW with Widgets and CAVA")](https://raw.githubusercontent.com/Lang-Lovdog/LovdogLiveWallpaper/original/img/llwFullDemo.mp4)
 
 ## Small documentation
