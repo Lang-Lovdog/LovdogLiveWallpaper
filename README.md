@@ -110,12 +110,12 @@ make install
 
 Since I'm in masters studies toward research curriculum I cannot assure I'll add every element in todo. At least, not as fast as I want.
 
-[ x ] Add screen pixmap resizing options
-[ x ] Add CAVA-like visualization
-[ x ] Add slideshow
-[  ] Add system info monitoring:  Widget support opened the doors for this one :3
-[ x ] Add widget-like element
-
+- [ x ] Add screen pixmap resizing options
+- [ x ] Add CAVA-like visualization
+- [ x ] Add slideshow
+- [  ] Add system info monitoring:  Widget support opened the doors for this one :3
+- [ x ] Add widget-like element
+- [ ! ] Config file support (WIP)
 
 As the obsessive wolf I am, and with the high amount of ideas here's a list of maybes I got in my head:
  - Make LovdogWallpaperManager
@@ -193,4 +193,8 @@ fwa_dates :: mff_dates ::
 todo :: sensors :: cava
 ```
 Yup, if you thought the `::` can act as some kind of gap placeholder, you're kinda right. THE FORMATTING IS ONLY AVAILABLE IF **NO BOX MARGIN IS GIVEN: `box_sw=-1`** at this point, this is modifiable only in code (but it's modifiable) and the default behaviour is the explained above.
+
+### Config file? Yeah, why not?
+Current config example comes inside `config` dir, you need to create a `.config/LovdogLiveWallpaper/config.toml` and a `.config/LovdogLiveWallpaper/widgets.theme.toml`. The one here comes with `catpuccin machiato`.
+Yeah, now widgets support 16-bit colors!
 
