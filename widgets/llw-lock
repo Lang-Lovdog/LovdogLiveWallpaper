@@ -11,7 +11,7 @@ LLW_WID=$(xdotool search --name "LovdogLiveWallpaper" | head -n 1)
 
 # 2. Obtener ventanas del desktop actual que NO sean el fondo
 CURRENT_DESKTOP=$(xdotool get_desktop)
-xdotool search --desktop "$CURRENT_DESKTOP" --onlyvisible "" > "${WIN_LIST}.raw"
+xdotool search --desktop "$CURRENT_DESKTOP" --onlyvisible --class --invert "kitty" > "${WIN_LIST}.raw"
 
 
 # Filtrar el fondo de pantalla de la lista para no hacerle unmap
