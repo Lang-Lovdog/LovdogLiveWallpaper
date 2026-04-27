@@ -4,7 +4,7 @@
 // En LovdogLiveWallpaper-frame-preprocess.cxx o un nuevo LovdogLiveWallpaper-audio.cxx
 
 extern const std::string cava_file;
-extern RuntimeOptions options;
+//extern RuntimeOptions options;
 
 void draw_adaptive_gradient_bar(cv::Mat& frame, int x, int y, int w, int h, cv::Scalar avg) {
     if (h <= 0 || w <= 0) return;
@@ -109,7 +109,7 @@ void draw_bar(cv::Mat& bars_mat, const WallpaperConfig& config, int num_bars, in
         }
 }
 
-void get_cava_bars(cv::Mat& barframe, cv::Rect& roi_cava, const WallpaperConfig& config, int num_bars, int fifo_fd) {
+void get_cava_bars(cv::Mat& barframe, cv::Rect& roi_cava, const WallpaperConfig& config, const RuntimeOptions &options, int num_bars, int fifo_fd) {
     // 1. Validar num_bars para evitar el warning y posibles crashes
     if (num_bars <= 0) return;
     size_t n_bytes = static_cast<size_t>(num_bars);

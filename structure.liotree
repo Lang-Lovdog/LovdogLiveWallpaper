@@ -4,6 +4,14 @@
 |=-
 |---- get_widget_data > El archivo de wigets en bash ||
 |---- get_wttr > Weather script ||
+|---- ansi_lab.cxx > Parser de formato ansi (bash) ||
+|---- ocv_from_fifo.cxx > Parser de formato ansi (bash) ||
+|==
+|- config/ > Directorio de configuraciones (en proceso) ||
+|=-
+|---- widgets.toml
+|---- widgets.theme.toml
+|---- config.toml
 |==
 |-- LovdogLiveWallpaper.hxx > Cabecera del programa ||
 |-- LovdogLiveWallpaper-sensors.hxx > Definiciones de funciones del programa integración de CAVA ||
@@ -18,5 +26,9 @@
 |-- LovdogLiveWallpaper-main.cpp > Código fuente principal ||
 |-- SetDescriptorLLW  > Arrancador automatizado mayormente aleatorio ||
 |-- SetUpCavaLLW  > Arrancador automatizado CAVA ||
+|-- SetUpWidgetsLLW  > Arrancador automatizado CAVA ||
+|-- SetUpWidgetsCavaLLW  > Arrancador automatizado CAVA ||
+|-- SetUpWidgetsLLWi  > Arrancador automatizado CAVA ||
+|-- SetUpWidgetsCavaLLWi  > Arrancador automatizado CAVA ||
 |-- Makefile > Para make build, make install ||
 |-- README.md > Pequeña descripción ||

@@ -1,9 +1,7 @@
 #include "LovdogLiveWallpaper.hxx"
 #include <ctime>
 
-extern bool keep_running;
-extern const std::string cava_file;
-extern RuntimeOptions options;
+//extern const std::string cava_file;
 
 void setImageXCB(
         cv::Mat               &bgra_frame ,
@@ -30,15 +28,11 @@ void clean_screen(
     xcb_pixmap_t    &pmap
 ) {
     // 1. Crear matriz negra (3 canales BGR)
-    cv::Mat black = cv::Mat::zeros(config.rn_height, config.rn_width, CV_8UC3);
+    cv::Mat black_bgra = cv::Mat::zeros(screen->width_in_pixels, screen->height_in_pixels, CV_8UC4);
     
-    // 2. Convertir a BGRA (4 canales)
-    cv::Mat black_bgra;
-    cv::cvtColor(black, black_bgra, cv::COLOR_BGR2BGRA);
-
     // 3. Empujar la imagen al Pixmap de X11
     xcb_put_image(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, pmap, gc,
-                  config.rn_width, config.rn_height,
+                  screen->width_in_pixels, screen->height_in_pixels,
                   config.x_start, config.y_start, 0, screen->root_depth,
                   black_bgra.total() * black_bgra.elemSize(), black_bgra.data);
 
@@ -49,6 +43,7 @@ void clean_screen(
 
 void loop_normal(
         WallpaperConfig  &config,
+        RuntimeOptions   &options,
         cv::VideoCapture &cap,
         xcb_screen_t     *screen,
         xcb_connection_t *conn,
@@ -61,7 +56,7 @@ void loop_normal(
     std::list<WidgetElement> active_widgets_list;
 
     // Bucle principal controlado por la señal
-    while (keep_running) {
+    while (options.keep_running) {
         auto start_time = std::chrono::steady_clock::now();
         cap >> frame;
         if (frame.empty()) {
@@ -71,8 +66,10 @@ void loop_normal(
 
         cv::resize(frame, frame, cv::Size(config.rn_width, config.rn_height));
         if (options.enable_widgets) {
-            draw_system_widget(frame, config, active_widgets_list);
+            draw_system_widget(frame, config, active_widgets_list, options);
         }
+
+        check_and_reload_configs(config, options);
 
         cv::cvtColor(frame, bgra_frame, cv::COLOR_BGR2BGRA);
         setImageXCB(bgra_frame, config, screen, conn, gc, pmap);
@@ -95,6 +92,7 @@ void loop_normal(
 
 void loop_normal_cava(
         WallpaperConfig  &config,
+        RuntimeOptions   &options,
         cv::VideoCapture &cap,
         xcb_screen_t     *screen,
         xcb_connection_t *conn,
@@ -103,7 +101,7 @@ void loop_normal_cava(
 ){
     cv::Mat frame, work_frame, barframe, bgra_frame, bars;
 
-    int audio_fd = open(cava_file.c_str(), O_RDONLY | O_NONBLOCK);
+    int audio_fd = open(options.cava_file.c_str(), O_RDONLY | O_NONBLOCK);
     int cava_delay_ms = 1000 / config.cava_fps;
     int bars_h = config.rn_height * config.cava_bars_height;
     cv::Rect roi_cava(0, config.rn_height - bars_h, config.rn_width, bars_h);
@@ -115,7 +113,7 @@ void loop_normal_cava(
 
     barframe = cv::Mat::zeros(cv::Size(config.rn_width, config.rn_height), CV_8UC4);
     // Bucle principal controlado por la señal
-    while (keep_running) {
+    while (options.keep_running) {
         auto start_time = std::chrono::steady_clock::now();
         if (ms_acumulados_anim >= ms_por_frame) {
             cap >> frame;
@@ -126,6 +124,8 @@ void loop_normal_cava(
             cv::resize(frame, frame, cv::Size(config.rn_width, config.rn_height));
             ms_acumulados_anim = 0; // Reset del acumulador
         }
+
+        check_and_reload_configs(config, options);
         
         // 1. INICIALIZAR MEMORIA (Lo que ya tenías)
         if (work_frame.size() != frame.size() || work_frame.type() != frame.type()) {
@@ -139,12 +139,12 @@ void loop_normal_cava(
         if (options.enable_cava) {
             roi_cava &= cv::Rect(0, 0, work_frame.cols, work_frame.rows);
             if (roi_cava.width > 0 && roi_cava.height > 0) {
-                get_cava_bars(work_frame, roi_cava, config, config.cava_num_bars, audio_fd);
+                get_cava_bars(work_frame, roi_cava, config, options, config.cava_num_bars, audio_fd);
             }
         }
 
         if (options.enable_widgets) {
-            draw_system_widget(work_frame, config, active_widgets_list);
+            draw_system_widget(work_frame, config, active_widgets_list, options);
         }
 
         // 3. CONVERTIR A BGRA PARA X11 (¡ESTO TAMBIÉN FALTABA!)
@@ -170,12 +170,13 @@ void loop_normal_cava(
 }
 
 void loop_slideshow(
-        WallpaperConfig& config,
-        slideshow_paths& slideshow_list,
-        xcb_screen_t* screen,
-        xcb_connection_t* conn,
-        xcb_gcontext_t& gc,
-        xcb_pixmap_t& pmap
+        WallpaperConfig  &config,
+        RuntimeOptions   &options,
+        slideshow_paths  &slideshow_list,
+        xcb_screen_t     *screen,
+        xcb_connection_t *conn,
+        xcb_gcontext_t   &gc,
+        xcb_pixmap_t     &pmap
 ){
     // Inicialización del generador de números aleatorios
     std::srand(std::time(0));
@@ -187,7 +188,7 @@ void loop_slideshow(
 
     int audio_fd=-1;
     if(options.enable_cava){
-        audio_fd = open(cava_file.c_str(), O_RDONLY | O_NONBLOCK);
+        audio_fd = open(options.cava_file.c_str(), O_RDONLY | O_NONBLOCK);
         if(audio_fd == -1) options.enable_cava = false;
     }
     std::string current_widget_text = "";
@@ -197,12 +198,13 @@ void loop_slideshow(
     int pasos_espera = ms_por_frame / (1000 / config.cava_fps); // Calculamos pasos según FPS deseados
     std::list<WidgetElement> active_widgets_list;
 
-    while (keep_running) {
+    while (options.keep_running) {
         random_image = slideshow_list[rand() % slideshow_list.size()];
         cv::Mat raw_frame = cv::imread(random_image);
         // 1. Crear el lienzo negro del tamaño de la pantalla (config.rn_width/height)
         cv::Mat canvas = cv::Mat::zeros(cv::Size(config.rn_width, config.rn_height), raw_frame.type());
 
+        check_and_reload_configs(config , options);
         if (!raw_frame.empty()) {
 
             // 2. Redimensionar la imagen original manteniendo el ratio
@@ -219,18 +221,18 @@ void loop_slideshow(
             resized_img.copyTo(canvas(cv::Rect(x_offset, y_offset, resized_img.cols, resized_img.rows)));
 
             // --- Inicio de Transición de Brillo (Fade-In) ---
-            for (float brillo = 0.0f; brillo <= 1.0f && keep_running; brillo += fade_step) {
+            for (float brillo = 0.0f; brillo <= 1.0f && options.keep_running; brillo += fade_step) {
                 cv::Mat temp_draw = canvas * brillo; // Operación en el lienzo completo
                 cv::Mat bgra_frame;
                 if (options.enable_cava) {
                     roi_cava &= cv::Rect(0, 0, temp_draw.cols, temp_draw.rows);
                     if (roi_cava.width > 0 && roi_cava.height > 0) {
-                        get_cava_bars(temp_draw, roi_cava, config, config.cava_num_bars, audio_fd);
+                        get_cava_bars(temp_draw, roi_cava, config, options, config.cava_num_bars, audio_fd);
                     }
                 }
 
                 if (options.enable_widgets) {
-                    draw_system_widget(temp_draw, config, active_widgets_list);
+                    draw_system_widget(temp_draw, config, active_widgets_list, options);
                 }
 
                 cv::cvtColor(temp_draw, bgra_frame, cv::COLOR_BGR2BGRA);
@@ -240,17 +242,17 @@ void loop_slideshow(
             }
         }
 
-        for(int i = 0; i < pasos_espera && keep_running; ++i) {
+        for(int i = 0; i < pasos_espera && options.keep_running; ++i) {
             cv::Mat work_frame = canvas.clone(); // Usamos el canvas original (brillo 1.0)
             
             // Render CAVA
             if (options.enable_cava) {
-                get_cava_bars(work_frame, roi_cava, config, config.cava_num_bars, audio_fd);
+                get_cava_bars(work_frame, roi_cava, config, options, config.cava_num_bars, audio_fd);
             }
 
             // Lógica de Widgets (ms_por_frame / pasos_espera nos da el tiempo real por iteración)
             if (options.enable_widgets) {
-                draw_system_widget(work_frame, config, active_widgets_list);
+                draw_system_widget(work_frame, config, active_widgets_list, options);
             }
 
             // Convertir y Enviar a X11
@@ -263,19 +265,19 @@ void loop_slideshow(
         }
 
         // --- Inicio de Transición de Brillo (Fade-Out) ---
-        for (float brillo = 1.0f; brillo >= 0.0f && keep_running; brillo -= fade_step) {
+        for (float brillo = 1.0f; brillo >= 0.0f && options.keep_running; brillo -= fade_step) {
             cv::Mat temp_draw = canvas * brillo; // Operación en el lienzo completo
             cv::Mat bgra_frame;
 
             if (options.enable_cava) {
                 roi_cava &= cv::Rect(0, 0, temp_draw.cols, temp_draw.rows);
                 if (roi_cava.width > 0 && roi_cava.height > 0) {
-                    get_cava_bars(temp_draw, roi_cava, config, config.cava_num_bars, audio_fd);
+                    get_cava_bars(temp_draw, roi_cava, config, options, config.cava_num_bars, audio_fd);
                 }
             }
 
             if (options.enable_widgets) {
-                draw_system_widget(temp_draw, config, active_widgets_list);
+                draw_system_widget(temp_draw, config, active_widgets_list, options);
             }
 
             cv::cvtColor(temp_draw, bgra_frame, cv::COLOR_BGR2BGRA);
@@ -289,6 +291,7 @@ void loop_slideshow(
 
 void start_loop(
         WallpaperConfig  &config,
+        RuntimeOptions   &options,
         slideshow_paths  &slideshow_list,
         cv::VideoCapture &cap,
         xcb_screen_t     *screen,
@@ -305,15 +308,15 @@ void start_loop(
             if(options.enable_cava){
                 std::cout << "Animated Start With CAVA integration\n"
                           << config.cava_num_bars << "bars || " << config.cava_fps << "of framerate";
-                loop_normal_cava(config, cap, screen, conn, gc, pmap);
+                loop_normal_cava(config, options, cap, screen, conn, gc, pmap);
             }else{
                 std::cout << "Animated Start";
-                loop_normal(config, cap, screen, conn, gc, pmap);
+                loop_normal(config, options, cap, screen, conn, gc, pmap);
             }
             break;
         case TYPE_DIR_SLIDE:
             std::cout << "Slideshow List Start";
-            loop_slideshow(config, slideshow_list, screen, conn, gc, pmap);
+            loop_slideshow(config, options, slideshow_list, screen, conn, gc, pmap);
             break;
     }
 }

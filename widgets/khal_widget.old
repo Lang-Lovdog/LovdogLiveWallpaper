@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# --- CONFIGURACIÓN ---
+REPE=""
+ALAR="󰀠"
+MARK_L="▐" 
+MARK_R="▌"
+
+# 1. CÁLCULO DE FECHAS (Precisión Quirúrgica)
+# Primer día del mes actual
+PRIMER_DIA_MES=$(date +%Y-%m-01)
+# Inicio de eventos: 2 semanas antes del inicio del mes
+START_DATE=$(date -d "$PRIMER_DIA_MES - 14 days" +%Y-%m-%d)
+
+# Datos para el resaltado de hoy
+D_HOY=$(date +%e | tr -d ' ')
+S_HOY=$(date +%V | sed 's/^0//')
+
+# 2. CAPTURA
+mapfile -t CAL < <(khal --no-color calendar "$START_DATE")
+
+# 3. ARITMÉTICA DE POSICIÓN (Basado en tu lógica de C)
+# Buscamos el ID de la primera semana que khal decidió imprimir
+FIRST_WEEK=$(echo "${CAL[1]}" | awk '{print $9}')
+
+# Si la semana cruzó el año (ej. de 52 a 1), necesitamos una corrección
+if [ $S_HOY -lt $FIRST_WEEK ]; then
+    # Ajuste simple para fin de año si fuera necesario
+    OFFSET=$(( (52 - FIRST_WEEK) + S_HOY + 1 ))
+else
+    OFFSET=$(( S_HOY - FIRST_WEEK + 1 ))
+fi
+
+# 4. RESALTADO DEL DÍA (Operación en la línea OFFSET)
+if [ -n "${CAL[$OFFSET]}" ]; then
+    if [ ${#D_HOY} -eq 2 ]; then
+        CAL[$OFFSET]=$(echo "${CAL[$OFFSET]}" | sed -E "s/ $D_HOY /${MARK_L}${D_HOY}${MARK_R}/")
+    else
+        # Espaciado para días de un solo dígito
+        CAL[$OFFSET]=$(echo "${CAL[$OFFSET]}" | sed -E "s/  $D_HOY / ${MARK_L}${D_HOY}${MARK_R}/")
+    fi
+fi
+
+# 5. SALIDA Y LIMPIEZA
+printf "%s\n" "${CAL[@]}" | sed "s/⟳/$REPE/g; s/⏰/$ALAR/g"

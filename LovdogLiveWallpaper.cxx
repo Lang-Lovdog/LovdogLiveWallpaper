@@ -2,11 +2,10 @@
 
 const char* PID_FILE = "/tmp/lovdog_live_wallpaper.pid";
 
-bool keep_running = true;
-
-RuntimeOptions options;
+//bool keep_running = true;
 
 namespace fs = std::filesystem;
+RuntimeOptions *g_options = nullptr;
 
 std::string find_wallpaper_path(const std::string& name) {
     const char* home = getenv("HOME");
@@ -35,7 +34,14 @@ std::string find_wallpaper_path(const std::string& name) {
 
 // Manejador de señales para que al hacer 'kill' se liberen los recursos de XCB
 void signal_handler(int sig) {
-    keep_running = false;
+    if (g_options) {
+        if (sig == SIGUSR1) {
+            g_options->read_widget_config = true;
+            std::cout << "Recargando configuración de widgets..." << std::endl;
+        } else {
+            g_options->keep_running = false;
+        }
+    }
 }
 
 cv::Scalar hexToScalar(std::string hex) {
@@ -111,7 +117,7 @@ void help(void) {
 }
 
 // En LovdogLiveWallpaper.cxx 
-void parse_args(int argc, char** argv, WallpaperConfig& config) {
+void parse_args(int argc, char** argv, WallpaperConfig& config, RuntimeOptions &options) {
     static struct option long_options[] = {
         {"send-stop"       , no_argument        , 0, 's'},
         {"descriptor-file" , required_argument  , 0, 'f'},
@@ -139,13 +145,14 @@ void parse_args(int argc, char** argv, WallpaperConfig& config) {
         {"widget-sh"       , required_argument  , 0, 'V'},
         {"widget-sw"       , required_argument  , 0, 'L'},
         {"widget-delay"    , required_argument  , 0, 'U'},
+        {"widget-reload"   , no_argument        , 0, 'W'},
         {"help"            , no_argument        , 0, 'h'},
         {0, 0, 0, 0}
     };
 
     int opt;
     // Agregamos 'v:' y 'd:' a la cadena de opciones 
-    while ((opt = getopt_long(argc, argv, "sf:i:v:FCSd:D:T:cZ:B:H:R:rK:Aw:P:X:M:Q:L:V:U:h", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "sf:i:v:FCSd:D:T:cZ:B:H:R:rK:Aw:P:X:M:Q:L:V:U:Wh", long_options, nullptr)) != -1) {
         switch (opt) {
             case 's': 
                 options.stop_previous = true; 
@@ -228,8 +235,11 @@ void parse_args(int argc, char** argv, WallpaperConfig& config) {
             case 'A':
                 options.use_cava_adaptive = true;
                 break;
+            case 'W':
+                options.reload_widgets = true;
+                break;
             case 'w':
-                options.enable_widgets = true;
+                options.enable_widgets     = true;
                 config.widget_cmd = optarg;
                 break;
             case 'P':{

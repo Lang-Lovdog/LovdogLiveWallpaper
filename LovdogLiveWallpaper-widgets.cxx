@@ -10,6 +10,77 @@
 #include "LovdogLiveWallpaper.hxx"
 #include "opencv2/imgproc.hpp"
 
+
+extern RuntimeOptions options;
+
+cv::Scalar term_to_scalar(char attr, RuntimeOptions& options) {
+    bool is_bright = attr & TermColor::BRIGHT;
+    int color_part = attr & 0b00111; // Extraer solo los bits de color
+
+    switch(color_part) {
+        case TermColor::RED:     return is_bright ? options.term_R : options.term_r;
+        case TermColor::GREEN:   return is_bright ? options.term_G : options.term_g;
+        case TermColor::YELLOW:  return is_bright ? options.term_Y : options.term_y;
+        case TermColor::BLUE:    return is_bright ? options.term_B : options.term_b;
+        case TermColor::MAGENTA: return is_bright ? options.term_M : options.term_m;
+        case TermColor::CYAN:    return is_bright ? options.term_C : options.term_c;
+        case TermColor::BLACK:   return is_bright ? options.term_K : options.term_k;
+        default:                 return is_bright ? options.term_W : options.term_w;
+    }
+}
+
+void update_attributes(const std::string& attr_content, char& current_attr) {
+    std::stringstream ss(attr_content);
+    std::string item;
+    while (std::getline(ss, item, ';')) {
+        if (item.empty()) continue;
+        try {
+            int code = std::stoi(item);
+            if (code == 0) {
+                current_attr = TermColor::WHITE; // Reset a blanco normal
+            } else if (code == 1) {
+                current_attr |= TermColor::BRIGHT;
+            } else if (code == 7) {
+                current_attr |= TermColor::INVERT;
+            } else if (code >= 30 && code <= 37) {
+                current_attr = (current_attr & ~0b00111) | (code - 30);
+            } else if (code >= 90 && code <= 97) {
+                current_attr = (current_attr & ~0b00111) | (code - 90) | TermColor::BRIGHT;
+            }
+        } catch (...) {}
+    }
+}
+
+ANSILine parse_to_ansi_line(const std::string& line) {
+    ANSILine parsed_line;
+    char current_attr = TermColor::WHITE; 
+    size_t pos = 0;
+
+    while (pos < line.size()) {
+        size_t esc_pos = line.find("\033[", pos);
+
+        // 1. Si hay texto antes del escape, creamos un segmento con el atributo actual
+        if (esc_pos > pos) {
+            parsed_line.push_back({line.substr(pos, esc_pos - pos), current_attr});
+        }
+
+        if (esc_pos == std::string::npos) break;
+
+        // 2. Procesar secuencia de escape
+        size_t end_pos = line.find_first_of("mABCDEFGHJKSTfink", esc_pos + 2);
+        if (end_pos != std::string::npos) {
+            if (line[end_pos] == 'm') {
+                std::string attr_content = line.substr(esc_pos + 2, end_pos - (esc_pos + 2));
+                update_attributes(attr_content, current_attr);
+            }
+            pos = end_pos + 1;
+        } else {
+            pos = esc_pos + 1;
+        }
+    }
+    return parsed_line;
+}
+
 struct PcloseDeleter {
     void operator()(FILE* f) const {
         if (f) pclose(f);
@@ -145,8 +216,30 @@ void load_widget_from_fifo(int fd, widget_text& out) {
         // CRÍTICO: Solo actualizamos si el mensaje parece sustancial
         // Si wttr mandó solo un pedacito, ignoramos la actualización 
         // y mantenemos el caché del frame anterior.
-        if (temp_lines.size() > 2) { 
+        if (temp_lines.size() > 0) { 
             out = std::move(temp_lines); 
+        }
+    }
+}
+
+void load_widget_from_fifo(int fd, widget_text_color& out) {
+    char buffer[8192];
+    ssize_t bytes = read(fd, buffer, sizeof(buffer) - 1);
+    
+    if (bytes > 0) {
+        buffer[bytes] = '\0';
+        std::stringstream ss(buffer);
+        std::string line;
+        widget_text_color new_data;
+        
+        while (std::getline(ss, line)) {
+            if (!line.empty()) {
+                new_data.push_back(parse_to_ansi_line(line));
+            }
+        }
+
+        if (new_data.size() > 2) { 
+            out = std::move(new_data); 
         }
     }
 }
@@ -193,7 +286,7 @@ void populate_widgets_from_layout(
             if (el.fifo_fd != -1) {
                 // Esta función lee el "merequetengue" del clima de Salamanca
                 // y actualiza el campo el.widget solo si hay datos nuevos.
-                load_widget_from_fifo(el.fifo_fd, el.widget);
+                load_widget_from_fifo(el.fifo_fd, el.widget_color);
             }
 
             widgets_out.push_back(&el); 
@@ -296,23 +389,9 @@ void assemble_widgets_row(const Widgets& widgets, const WallpaperConfig& cfg, wi
 
 static cv::Ptr<cv::freetype::FreeType2> ft2;
 
-void update_widgets_layout(cv::Mat& frame, const WallpaperConfig& config, int& y_cursor, std::list<WidgetElement>& active_widgets_list) {
-    std::vector<std::string> layout_lines;
-    
+void update_widgets_layout(cv::Mat& frame, const WallpaperConfig& config, RuntimeOptions& options, int& y_cursor, std::list<WidgetElement>& active_widgets_list) {
     // 1. Leer el archivo de configuración del layout (no los widgets en sí)
-    {
-        std::ifstream file(config.widgets_file);
-        if (!file.is_open()) return;
-        std::string l;
-        while (std::getline(file, l)) {
-            trim_string(l);
-            if (!l.empty() && l[0] != '#') layout_lines.push_back(l);
-        }
-    }
-
-    int line_h = config.widget_font_px; // Un pequeño margen entre líneas
-
-    for (const auto& line : layout_lines) {
+    for (const auto& line : options.widget_config) {
         Widgets_t row_widgets; // Vector de punteros WidgetElement*
         char h_gaps = 0;
         
@@ -328,18 +407,28 @@ void update_widgets_layout(cv::Mat& frame, const WallpaperConfig& config, int& y
 
         for (auto* el : row_widgets) {
             int max_w = 0;
-            for (const auto& txt : el->widget) {
-                int bl = 0;
-                cv::Size sz = ft2->getTextSize(txt, config.widget_font_px, -1, &bl);
-                if (sz.width > max_w) max_w = sz.width;
+            
+            // Iteramos sobre el nuevo vector de ANSILine
+            for (const auto& line : el->widget_color) {
+                int current_line_width = 0;
+                
+                for (const auto& segment : line) {
+                    if (segment.text.empty()) continue;
+                    
+                    int bl = 0;
+                    cv::Size sz = ft2->getTextSize(segment.text, config.widget_font_px, -1, &bl);
+                    current_line_width += sz.width;
+                }
+                
+                if (current_line_width > max_w) max_w = current_line_width;
             }
-            el->box_width = max_w + 20;
-            el->box_height = (el->widget.size() * line_h) + 10;
+
+            el->box_width = max_w + 20; // Padding horizontal
+            el->box_height = (el->widget_color.size() * config.widget_font_px) + 15; // Padding vertical para INVERT
             
             if (el->box_height > max_row_h) max_row_h = el->box_height;
             total_row_w += el->box_width;
         }
-
         // 3. Posicionamiento X (Tu lógica de bitmasking de gaps)
         int start_x = config.rn_width * config.widget_x_prop;
         int current_x = start_x;
@@ -361,13 +450,73 @@ void update_widgets_layout(cv::Mat& frame, const WallpaperConfig& config, int& y
             el->box_y = y_cursor;
 
             // Aquí llamas a una función de dibujo limpia
-            draw_single_widget(frame, *el, config);
+            draw_ansi_widget(frame, *el, config, options);
 
             current_x += el->box_width + gap;
         }
         y_cursor += max_row_h + (config.widget_box_sh * 10);
     }
     cleanup_inactive_widgets(active_widgets_list);
+}
+
+//// Evolución de draw_single_widget
+void draw_ansi_widget(cv::Mat& frame, const WidgetElement& el, const WallpaperConfig& config, RuntimeOptions& options) {
+    // 1. Definición del ROI
+    cv::Rect roi(el.box_x, el.box_y, el.box_width, el.box_height);
+    roi &= cv::Rect(0, 0, frame.cols, frame.rows);
+    if (roi.width <= 5 || roi.height <= 5) return;
+
+    // 2. Renderizado del fondo (Corregido)
+    cv::Mat roi_src = frame(roi); 
+    cv::Mat color_layer(roi_src.size(), roi_src.type(), el.background_color);
+    cv::Mat multiply_layer;
+
+    // Efecto de multiplicación para oscurecer
+    cv::multiply(roi_src, color_layer, multiply_layer, 1.0/255.0);
+
+    // Mezcla final: Aplicamos el resultado al frame directamente
+    cv::addWeighted(
+            multiply_layer,
+            el.background_opacity,
+            roi_src,
+            config.widget_background_dimming * (1.0f - el.background_opacity),
+            0,
+            roi_src);
+
+    // 3. Borde
+    cv::rectangle(frame, roi, el.border_color, 1);
+
+    // 4. Renderizado de segmentos (Igual al standalone)
+    int line_h = config.widget_font_px; // Un poco de aire entre líneas
+    int ty = el.box_y + config.widget_font_px; 
+
+    for (const auto& line : el.widget_color) {
+        int tx = el.box_x + 10;
+        for (const auto& segment : line) {
+            if (segment.text.empty()) continue;
+
+            cv::Scalar fg_color = term_to_scalar(segment.attributes, options);
+            int bl = 0;
+            cv::Size sz = ft2->getTextSize(segment.text, config.widget_font_px, -1, &bl);
+
+            if (segment.attributes & TermColor::INVERT) {
+                // Dibujar el bloque sólido
+                // ty es la baseline, restamos la altura de la fuente para el top del rect
+                cv::Rect bg_rect(tx, ty - config.widget_font_px, sz.width, config.widget_font_px + bl);
+                
+                // IMPORTANTE: Dibujar sobre 'frame' (que ya tiene el fondo mezclado)
+                cv::rectangle(frame, bg_rect, fg_color, cv::FILLED);
+                
+                fg_color = cv::Scalar(0, 0, 0); 
+            }
+
+            ft2->putText(frame, segment.text, cv::Point(tx, ty), 
+                         config.widget_font_px, fg_color, -1, cv::LINE_AA, true);
+
+            tx += sz.width;
+        }
+        ty += line_h;
+    }
 }
 
 void draw_single_widget(cv::Mat& frame, const WidgetElement& el, const WallpaperConfig& config) {
@@ -392,7 +541,7 @@ void draw_single_widget(cv::Mat& frame, const WidgetElement& el, const Wallpaper
 
     // Texto: Usar un ajuste de línea más preciso
     int line_h = config.widget_font_px;
-    int ty = el.box_y + config.widget_font_px + 5; 
+    int ty = el.box_y + config.widget_font_px; 
 
     for (const auto& txt : el.widget) {
         if (txt.empty()) { ty += line_h; continue; }
@@ -436,7 +585,7 @@ void render_widget_from_cmd(cv::Mat& frame, const WallpaperConfig& config, int& 
         if (v > max_v_w) max_v_w = v;
     }
 
-    int line_h = config.widget_font_px + 5;
+    int line_h = config.widget_font_px;
     int widget_x = config.rn_width * config.widget_x_prop;
     int bg_w = max_v_w * (config.widget_font_px * 0.65) + 20;
     int bg_h = lines.size() * line_h + 0;
@@ -459,7 +608,7 @@ void render_widget_from_cmd(cv::Mat& frame, const WallpaperConfig& config, int& 
     }
 }
 
-void draw_system_widget(cv::Mat& frame, const WallpaperConfig& config, std::list<WidgetElement>& active_widgets_list) {
+void draw_system_widget(cv::Mat& frame, const WallpaperConfig& config, std::list<WidgetElement>& active_widgets_list, RuntimeOptions& opts) {
     if (ft2.empty()) {
         ft2 = cv::freetype::createFreeType2();
         ft2->loadFontData(resolve_font_name(config.widget_font), 0);
@@ -467,7 +616,7 @@ void draw_system_widget(cv::Mat& frame, const WallpaperConfig& config, std::list
 
     int y_cursor = config.rn_height * config.widget_y_prop;
 
-    if (config.widget_cmd == ".") update_widgets_layout(frame, config, y_cursor, active_widgets_list);
+    if (config.widget_cmd == ".") update_widgets_layout(frame, config, opts, y_cursor, active_widgets_list);
     else render_widget_from_cmd(frame, config, y_cursor);
 }
 

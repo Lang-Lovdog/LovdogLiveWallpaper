@@ -4,7 +4,7 @@ extern const char* PID_FILE;
 
 extern bool keep_running;
 
-extern RuntimeOptions options;
+//extern RuntimeOptions options;
 
 namespace fs = std::filesystem;
 
@@ -56,7 +56,7 @@ void routine_dir_slide(WallpaperConfig& config, cv::VideoCapture& cap) {
     cap.open(config.path + "/*.jpg"); 
 }
 
-bool prepare_capture(WallpaperConfig& config, cv::VideoCapture& cap, slideshow_paths &slideshow_list) {
+bool prepare_capture(WallpaperConfig& config, RuntimeOptions& options, cv::VideoCapture& cap, slideshow_paths &slideshow_list) {
     switch (config.in_type) {
         case TYPE_VIDEO:
         case TYPE_GIF:

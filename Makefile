@@ -1,5 +1,5 @@
-OCV_FLAGS=`pkg-config --cflags --libs xcb opencv4` -O3 -lfreetype -lfontconfig
-FILES=LovdogLiveWallpaper.cxx LovdogLiveWallpaper-frame-preprocess.cxx LovdogLiveWallpaper-loops.cxx LovdogLiveWallpaper-main.cpp LovdogLiveWallpaper-cava.cxx LovdogLiveWallpaper-widgets.cxx
+OCV_FLAGS=`pkg-config --cflags --libs xcb opencv4` -O3 -lfreetype -lfontconfig -g
+FILES=LovdogLiveWallpaper.cxx LovdogLiveWallpaper-conf_file.cxx LovdogLiveWallpaper-frame-preprocess.cxx LovdogLiveWallpaper-loops.cxx LovdogLiveWallpaper-main.cpp LovdogLiveWallpaper-cava.cxx LovdogLiveWallpaper-widgets.cxx
 
 all: build install
 

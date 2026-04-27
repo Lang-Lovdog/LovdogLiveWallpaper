@@ -1,45 +1,46 @@
 #!/bin/bash
 
-# --- CONFIGURACIÓN ---
+# --- CONFIGURACIÓN DE GLIFOS (Nerd Fonts) ---
 REPE=""
 ALAR="󰀠"
-MARK_L="▐" 
-MARK_R="▌"
 
-# 1. CÁLCULO DE FECHAS (Precisión Quirúrgica)
-# Primer día del mes actual
+# 1. CÁLCULO DE FECHAS
 PRIMER_DIA_MES=$(date +%Y-%m-01)
-# Inicio de eventos: 2 semanas antes del inicio del mes
+# 2 semanas antes para dar contexto al calendario
 START_DATE=$(date -d "$PRIMER_DIA_MES - 14 days" +%Y-%m-%d)
 
-# Datos para el resaltado de hoy
+# Datos para el resaltado
 D_HOY=$(date +%e | tr -d ' ')
 S_HOY=$(date +%V | sed 's/^0//')
 
-# 2. CAPTURA
-mapfile -t CAL < <(khal --no-color calendar "$START_DATE")
+# 2. CAPTURA (Sin color original para procesar limpiamente)
+mapfile -t CAL < <(khal --color calendar "$START_DATE")
 
-# 3. ARITMÉTICA DE POSICIÓN (Basado en tu lógica de C)
-# Buscamos el ID de la primera semana que khal decidió imprimir
-FIRST_WEEK=$(echo "${CAL[1]}" | awk '{print $9}')
+# 3. ARITMÉTICA DE POSICIÓN
+# Localizamos la semana de referencia en la salida de khal
+FIRST_WEEK=$(echo "${CAL[1]}" | awk '{print $NF}') # Usamos NF para mayor robustez
 
-# Si la semana cruzó el año (ej. de 52 a 1), necesitamos una corrección
-if [ $S_HOY -lt $FIRST_WEEK ]; then
-    # Ajuste simple para fin de año si fuera necesario
+if [ "$S_HOY" -lt "$FIRST_WEEK" ]; then
     OFFSET=$(( (52 - FIRST_WEEK) + S_HOY + 1 ))
 else
     OFFSET=$(( S_HOY - FIRST_WEEK + 1 ))
 fi
 
-# 4. RESALTADO DEL DÍA (Operación en la línea OFFSET)
+# 4. RESALTADO ANSI (Inyección de Atributo Invertir: \e[7m)
+# Esto será capturado por tu función update_attributes y activará TermColor::INVERT
 if [ -n "${CAL[$OFFSET]}" ]; then
+    ESC_INV=$(printf '\033[7m')
+    ESC_RST=$(printf '\033[0m')
+    
     if [ ${#D_HOY} -eq 2 ]; then
-        CAL[$OFFSET]=$(echo "${CAL[$OFFSET]}" | sed -E "s/ $D_HOY /${MARK_L}${D_HOY}${MARK_R}/")
+        # Reemplazo para días de dos dígitos
+        CAL[$OFFSET]=$(echo "${CAL[$OFFSET]}" | sed -E "s/ $D_HOY / ${ESC_INV}${D_HOY}${ESC_RST} /")
     else
-        # Espaciado para días de un solo dígito
-        CAL[$OFFSET]=$(echo "${CAL[$OFFSET]}" | sed -E "s/  $D_HOY / ${MARK_L}${D_HOY}${MARK_R}/")
+        # Reemplazo para días de un dígito (manteniendo el espaciado de la terminal)
+        CAL[$OFFSET]=$(echo "${CAL[$OFFSET]}" | sed -E "s/  $D_HOY /  ${ESC_INV}${D_HOY}${ESC_RST} /")
     fi
 fi
 
-# 5. SALIDA Y LIMPIEZA
+# 5. SALIDA CON REEMPLAZO DE GLIFOS
+# Sustituimos los placeholders por tus Nerd Fonts y enviamos al FIFO
 printf "%s\n" "${CAL[@]}" | sed "s/⟳/$REPE/g; s/⏰/$ALAR/g"

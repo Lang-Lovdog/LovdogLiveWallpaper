@@ -144,6 +144,67 @@ std::string draw_braille_graph(const std::vector<float>& history) {
     return rows[0] + "\n" + rows[1] + "\n" + rows[2] + "\n" + rows[3];
 }
 
+std::string draw_block_histogram_color(const std::vector<float>& history, std::string label, float max_val) {
+    if (history.empty()) return "";
+
+    std::string levels[] = {" ", "░", "▒", "▓", "█"};
+    int max_l = 4;
+    std::string rows[GRAPH_HEIGHT];
+    float unit = max_val / (float)GRAPH_HEIGHT;
+
+    for (int r = 0; r < GRAPH_HEIGHT; ++r) {
+        float row_bottom = (float)(GRAPH_HEIGHT - 1 - r) * unit;
+        
+        // 1. Ponemos el color UNA VEZ al inicio de la fila
+        if (r < 2) rows[r] += "\033[31m";      // Rojo (Arriba)
+        else if (r < 4) rows[r] += "\033[33m"; // Amarillo (Medio)
+        else rows[r] += "\033[32m";            // Verde (Abajo)
+
+        for (size_t i = 0; i < history.size(); ++i) {
+            float val = history[i];
+
+            if (val >= row_bottom + unit) {
+                rows[r] += levels[max_l];
+            } else if (val > row_bottom) {
+                float rel = (val - row_bottom) / unit;
+                int idx = (int)(rel * max_l);
+                rows[r] += levels[idx > 0 ? idx : 1];
+            } else {
+                // Para evitar que el color pinte los espacios vacíos del fondo, 
+                // cerramos color, ponemos espacio, y reabrimos color.
+                // Pero si tu fondo de widget es sólido, un simple " " basta.
+                rows[r] += " "; 
+            }
+        }
+        // 2. Cerramos el color al final de la fila
+        rows[r] += "\033[0m";
+    }
+
+    // --- ENCAPSULACIÓN (Asegurando ancho fijo) ---
+    size_t target_width = history.size(); 
+    size_t visual_len = utf8_length(label);
+    
+    // Usamos el blanco brillante de tu tema para el marco
+    std::string box = "\033[97m┌─ " + label + " "; 
+    
+    // Padding calculado sobre el ancho visual real
+    int padding = (int)target_width - (int)visual_len - 3;
+    if (padding < 0) padding = 0;
+    
+    for (int i = 0; i < padding; ++i) box += "─";
+    box += "┐\n";
+
+    for (int i = 0; i < GRAPH_HEIGHT; ++i) {
+        box += "│" + rows[i] + "\033[97m│\n";
+    }
+
+    box += "└";
+    for (size_t i = 0; i < target_width; ++i) box += "─";
+    box += "┘\033[0m\n";
+
+    return box;
+}
+
 std::string draw_block_histogram(const std::vector<float>& history, std::string label, float max_val) {
     if (history.empty()) return "";
 
@@ -323,6 +384,8 @@ int get_battery_level() {
 
 SysStats get_system_stats() {
     SysStats stats;
+    static float_v global_temp_history(MAX_HISTORY, 0.0f);
+    static float_v global_load_history(MAX_HISTORY, 0.0f);
     stats.battery = get_battery_level();
 
     if (sensors_init(NULL) == 0) {
@@ -387,8 +450,8 @@ int main() {
         #endif
         
         std::cout << "  CPU Metrics" << std::endl;
-        std::cout << draw_block_histogram(s.load_history, "Load " + std::to_string((int)s.cpu_usage) + "%", 100.0f) << std::endl;
-        std::cout << draw_block_histogram(s.cpu_history, "Temp " + std::to_string((int)s.cpu_temp) + "°C", 100.0f) << std::endl;
+        std::cout << draw_block_histogram_color(s.load_history, "Load " + std::to_string((int)s.cpu_usage) + "%", 100.0f) << std::endl;
+        std::cout << draw_block_histogram_color(s.cpu_history, "Temp " + std::to_string((int)s.cpu_temp) + "°C", 100.0f) << std::endl;
         
         std::cout << "  Battery: " << s.battery << "%" << std::endl;
         std::flush(std::cout);

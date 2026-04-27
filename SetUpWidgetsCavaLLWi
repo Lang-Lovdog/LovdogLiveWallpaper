@@ -5,10 +5,10 @@ cava_fifo="/tmp/lovdog_live_wallpaper/cava_fifo"
 config_file="/tmp/lovdog_live_wallpaper_cava_config"
 cava_fps=30
 cava_num_bars=85
-cava_bars_height=0.4
+cava_bars_height=0.7
 llw_widgets="$LIODIR_IMAGES/LovdogLiveWallpaper/widgets/"
 llw_widget="$llw_widgets/cal_todo.sh"
-rm /tmp/lovdog_live_wallpaper/widgets_continue
+wallpapers_slideshow_dir="$HOME/.WallPapers"
 
 pkill cava
 
@@ -16,13 +16,20 @@ pkill cava
 echo "
 [general]
 bars = ${cava_num_bars}
-#sleep_timer = 0       # Reduce latencia
+sleep_timer = 0       # Reduce latencia
 autosens = 0.3
 mode = single
+sensitivity = 130
 
-[input]
-method = pipewire
-source = auto
+[smoothing]
+gravity = 421
+integral = 0.1
+monstercat=1
+waves = 0
+
+#[input]
+#method = pipewire
+#source = auto
 framerate = ${cava_fps}
 
 [output]
@@ -45,6 +52,9 @@ if [ $# -eq 1 ]; then
 fi
 
 cd $LIODIR_IMAGES
+#pkill get_widget_data
+rm /tmp/lovdog_live_wallpaper/widgets_continue
+LovdogLiveWallpaper/widgets/get_widget_data > $HOME/.log/lovdog_live_wallpaper_get_widget_data.log 2>&1 &
 llw --send-stop
 sleep 0.9
 
@@ -55,7 +65,7 @@ if [ $# -eq 2 ]; then
     'v')  decr="$(find ./VIDEOS -name "*$descr*" | head -n1)"
           flags="-v"
       ;;
-    'g')  decr="$(find ./GISS   -name "*$descr*" | head -n1)"
+    'g')  decr="$(find ./GIFS   -name "*$descr*" | head -n1)"
           flags="-v"
       ;;
     'd')  decr="$(cat Descriptors.maww | grep $descr | head -n1 | awk '{print $2}')"
@@ -86,6 +96,8 @@ else
   esac
   echo "Descriptor: $decr"
 fi
-llw -X 10 -M 'BigBlueTermPlus Nerd Font' --cava -K '#ff0000:#0000ff' -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" >> /tmp/lovdog_live_wallpaper.log 2>&1 &
-#llw -w "$llw_widget" -X 10 -M 'BigBlueTermPlus Nerd Font' --cava -A -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>&1 &
+
+./LovdogLiveWallpaper/llwi -w "." -L -1 -X 10 -M 'BigBlueTermPlus Nerd Font' - --cava -K '#ff0000:#0000ff' -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop -D 1300 -T 200 $flags "$decr" >> $HOME/.log/lovdog_live_wallpaper.log 2>&1 &
+#./LovdogLiveWallpaper/llwi -w "." -L -1 -X 10 -M 'BigBlueTermPlus Nerd Font' - --cava -K '#ff0000:#0000ff' -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" >> $HOME/.log/lovdog_live_wallpaper.log 2>&1 &
+#./LovdogLiveWallpaper/llwi -w "." -X 10 -M 'BigBlueTermPlus Nerd Font' --cava -A -F -H $cava_bars_height -B $cava_num_bars -Z $cava_fps --send-stop $flags "$decr" > /tmp/lovdog_live_wallpaper.log 2>>&1 &
 
