@@ -50,8 +50,11 @@ llw -P | --widget-pos       <x_proportional_to_width:y_proportional_to_height>
 llw -X | --widget-fsz       <int font_size>
 llw -M | --widget-fnt       <string font_name>
 llw -M | --widget-delay     <int frames_to_count>
+llw -W | --widget-reload
 llw -h | --help
 ```
+
+`--widget-reload` reloads all the `config` stuff. This command doesn't start a new instance, just send the message.
 
 The `--send-stop` flag is used to stop the wallpaper. This is to avoid memory leaks due to the frame load.
 
