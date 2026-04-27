@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sys/types.h>
 #include <getopt.h>
+#include <opencv2/freetype.hpp>
 #include <signal.h>
 #include <filesystem>
 
@@ -21,6 +22,7 @@ struct TextSegment {
 typedef std::vector<TextSegment> ANSILine;
 typedef std::vector<ANSILine> widget_text_color;
 
+typedef cv::Ptr<cv::freetype::FreeType2> freetype2_t;
 typedef int fifo_t;
 typedef std::vector<std::string> widget_text;
 typedef std::vector<std::string> widget_conf;
@@ -138,6 +140,7 @@ struct WallpaperConfig {
     std::string  config_file               =
                     std::string(getenv("HOME")) +
                     "/.config/LovdogLiveWallpaper/config.toml"            ;
+    freetype2_t  ft2                                                      ;
     int          cava_num_bars             = 64                           ;
     float        cava_bars_height          = 0.25f                        ;
     cv::Scalar   cava_color                = cv::Scalar(200, 100, 050)    ;
@@ -250,7 +253,7 @@ ANSILine parse_to_ansi_line(const std::string& line);
 std::string get_command_output(const char* cmd);
 std::string fetch_khal_agenda();
 void draw_system_widget(cv::Mat& frame, const WallpaperConfig& config, std::list<WidgetElement>& active_widgets_list);
-void draw_system_widget(cv::Mat& frame, const WallpaperConfig& config, std::list<WidgetElement>& active_widgets_list, RuntimeOptions& opts);
+void draw_system_widget(cv::Mat& frame, WallpaperConfig& config, std::list<WidgetElement>& active_widgets_list, RuntimeOptions& opts);
 std::string fetch_command_output(const std::string& cmd);
 cv::Scalar get_adaptive_color(cv::Scalar avg, bool is_text);
 void draw_bar_gradient(cv::Mat& bars_mat, const WallpaperConfig& config, int num_bars, int height, std::vector<uint8_t>heights, int bar_w);
@@ -285,7 +288,7 @@ void update_widgets_layout(cv::Mat& frame, const WallpaperConfig& config, const 
 void cleanup_inactive_widgets(std::list<WidgetElement>& active_widgets_list);
 // Conf file parsing
 void load_theme_config(WallpaperConfig& config, RuntimeOptions& opts);
-void load_main_config(WallpaperConfig& config);
+void load_main_config(WallpaperConfig& config, RuntimeOptions& opts);
 void read_layout_file(const WallpaperConfig& config, RuntimeOptions& options);
 void check_and_reload_configs(WallpaperConfig& config, RuntimeOptions& options);
 

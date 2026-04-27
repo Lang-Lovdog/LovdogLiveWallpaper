@@ -2,7 +2,6 @@
 #include <memory>
 #include <string>
 #include <array>
-#include <opencv2/freetype.hpp>
 #include <vector>
 #include <fstream>
 
@@ -386,9 +385,6 @@ void assemble_widgets_row(const Widgets& widgets, const WallpaperConfig& cfg, wi
     }
 }
 
-
-static cv::Ptr<cv::freetype::FreeType2> ft2;
-
 void update_widgets_layout(cv::Mat& frame, const WallpaperConfig& config, RuntimeOptions& options, int& y_cursor, std::list<WidgetElement>& active_widgets_list) {
     // 1. Leer el archivo de configuración del layout (no los widgets en sí)
     for (const auto& line : options.widget_config) {
@@ -416,7 +412,7 @@ void update_widgets_layout(cv::Mat& frame, const WallpaperConfig& config, Runtim
                     if (segment.text.empty()) continue;
                     
                     int bl = 0;
-                    cv::Size sz = ft2->getTextSize(segment.text, config.widget_font_px, -1, &bl);
+                    cv::Size sz = config.ft2->getTextSize(segment.text, config.widget_font_px, -1, &bl);
                     current_line_width += sz.width;
                 }
                 
@@ -497,7 +493,7 @@ void draw_ansi_widget(cv::Mat& frame, const WidgetElement& el, const WallpaperCo
 
             cv::Scalar fg_color = term_to_scalar(segment.attributes, options);
             int bl = 0;
-            cv::Size sz = ft2->getTextSize(segment.text, config.widget_font_px, -1, &bl);
+            cv::Size sz = config.ft2->getTextSize(segment.text, config.widget_font_px, -1, &bl);
 
             if (segment.attributes & TermColor::INVERT) {
                 // Dibujar el bloque sólido
@@ -510,7 +506,7 @@ void draw_ansi_widget(cv::Mat& frame, const WidgetElement& el, const WallpaperCo
                 fg_color = cv::Scalar(0, 0, 0); 
             }
 
-            ft2->putText(frame, segment.text, cv::Point(tx, ty), 
+            config.ft2->putText(frame, segment.text, cv::Point(tx, ty), 
                          config.widget_font_px, fg_color, -1, cv::LINE_AA, true);
 
             tx += sz.width;
@@ -545,7 +541,7 @@ void draw_single_widget(cv::Mat& frame, const WidgetElement& el, const Wallpaper
 
     for (const auto& txt : el.widget) {
         if (txt.empty()) { ty += line_h; continue; }
-        ft2->putText(frame, txt, cv::Point(el.box_x + 10, ty), 
+        config.ft2->putText(frame, txt, cv::Point(el.box_x + 10, ty), 
                      config.widget_font_px, cv::Scalar(255,255,255), -1, cv::LINE_AA, true);
         ty += line_h;
     }
@@ -601,17 +597,17 @@ void render_widget_from_cmd(cv::Mat& frame, const WallpaperConfig& config, int& 
 
         cv::Scalar font_color = get_adaptive_color(cv::mean(frame(roi)), true);
         for (const auto& l : lines) {
-            ft2->putText(frame, l, cv::Point(widget_x, y_cursor), 
+            config.ft2->putText(frame, l, cv::Point(widget_x, y_cursor), 
                          config.widget_font_px, font_color, -1, cv::LINE_AA, true);
             y_cursor += line_h;
         }
     }
 }
 
-void draw_system_widget(cv::Mat& frame, const WallpaperConfig& config, std::list<WidgetElement>& active_widgets_list, RuntimeOptions& opts) {
-    if (ft2.empty()) {
-        ft2 = cv::freetype::createFreeType2();
-        ft2->loadFontData(resolve_font_name(config.widget_font), 0);
+void draw_system_widget(cv::Mat& frame, WallpaperConfig& config, std::list<WidgetElement>& active_widgets_list, RuntimeOptions& opts) {
+    if (config.ft2.empty()) {
+        config.ft2 = cv::freetype::createFreeType2();
+        config.ft2->loadFontData(resolve_font_name(config.widget_font), 0);
     }
 
     int y_cursor = config.rn_height * config.widget_y_prop;

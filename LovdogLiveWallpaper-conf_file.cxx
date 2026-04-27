@@ -1,7 +1,7 @@
 #include "LovdogLiveWallpaper.hxx"
 #include "toml.hpp" // asumiendo toml++
 
-void load_main_config(WallpaperConfig& config) {
+void load_main_config(WallpaperConfig& config, RuntimeOptions& options) {
     try {
         if (!std::filesystem::exists(config.config_file)) {
             std::cerr << "[LLW] Warning: Main config not found at " << config.config_file << std::endl;
@@ -12,9 +12,13 @@ void load_main_config(WallpaperConfig& config) {
 
         // --- SECCIÓN CAVA ---
         if (auto cava = tbl["CAVA"].as_table()) {
-            config.cava_num_bars   = (*cava)["bars"].value_or(64);
-            config.cava_bars_height = (*cava)["height_ratio"].value_or(0.25f);
-            config.cava_random_color = (*cava)["random_color"].value_or(false);
+            config.cava_num_bars      = (*cava)["bars"].value_or(64);
+            config.cava_bars_height   = (*cava)["height_ratio"].value_or(0.25f);
+            config.cava_random_color  = (*cava)["random_color"].value_or(false);
+            options.use_cava_range    = (*cava)["color_range"].value_or(false);
+            options.use_cava_adaptive = (*cava)["color_adaptive"].value_or(false);
+            options.enable_cava       = (*cava)["enable"].value_or(false);
+
 
             // Cargar color base de CAVA si existe
             if (auto col_arr = (*cava)["color"].as_array()) {
@@ -49,6 +53,7 @@ void load_main_config(WallpaperConfig& config) {
             // Alineamos con los nombres del TOML
             config.widget_font_px = (*w)["font_px"].value_or(12);
             config.widget_font = (*w)["font_name"].value_or("Monospace");
+            std::cout << "[LLW] Font name: " << config.widget_font << std::endl;
             
             config.widget_background_opacity = (*w)["bg_opacity"].value_or(0.5f);
             config.widget_background_dimming = (*w)["bg_dimming"].value_or(0.05f);
@@ -173,7 +178,9 @@ void check_and_reload_configs(WallpaperConfig& config, RuntimeOptions& options) 
         std::cout << "[LLW] Reloading all configurations..." << std::endl;
         read_layout_file(config, options);
         load_theme_config(config, options);
-        load_main_config(config);
+        load_main_config(config, options);
+        config.ft2 = cv::freetype::createFreeType2();
+        config.ft2->loadFontData(resolve_font_name(config.widget_font), 0);
         options.read_widget_config = false;
     }
 }
