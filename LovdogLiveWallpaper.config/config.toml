@@ -1,0 +1,37 @@
+# Lovdog Live Wallpaper - Main Configuration
+# Archivo: ~/.config/LovdogLiveWallpaper/config.toml
+
+[CAVA]
+# Número de barras del espectrograma
+bars = 85
+# Altura relativa al alto de la pantalla (0.10 = 10%)
+height_ratio = 0.20
+# Color estático en formato [B, G, R] (OpenCV usa BGR)
+#color = [50, 100, 200]
+# Activar cambio de color aleatorio por frame
+#random_color = false
+enable=true
+#color_adaptive = true
+color_range = true
+
+[CAVA.GRADIENT]
+# Rango de interpolación si decides implementar gradientes dinámicos
+rgb_min = [205, 126,  20]
+rgb_max = [  0,  50, 175]
+
+[WIDGETS]
+# Posicionamiento relativo (0.0 a 1.0)
+x_prop = 0.05
+y_prop = 0.05
+
+# Tipografía
+font_px = 10
+font_name = "VictorMono Nerd Font"
+#font_name = "3270Condensed Nerd Font"
+#font_name = "unifont"
+
+# Apariencia de los contenedores (Boxes)
+# Opacidad del fondo (0.0 transparente, 1.0 sólido)
+bg_opacity = 0.4
+# Factor de oscurecimiento del frame original bajo el widget
+bg_dimming = 0.75

@@ -1,0 +1,30 @@
+# Lovdog Live Wallpaper - Theme Configuration
+# Theme: ENCOM Mainframe (Tron Legacy Inspired)
+# Format: [B, G, R] for OpenCV
+
+[COLORS]
+# --- Normal Palette (ANSI 0-7) ---
+term_k = [25, 10, 5]       # Deep Circuit (Black)
+term_r = [0, 80, 255]      # Warning Orange (Red)
+term_g = [255, 190, 0]     # Encom Blue (Green)
+term_y = [255, 255, 100]    # User Cyan (Yellow)
+term_b = [255, 120, 50]     # Data Stream (Blue)
+term_m = [200, 100, 255]    # Logic Purple (Magenta)
+term_c = [255, 230, 150]    # Cold Teal (Cyan)
+term_w = [180, 180, 180]    # Terminal Gray (White)
+
+# --- Bright Palette (ANSI 8-15) ---
+term_K = [60, 30, 20]      # Shadow Grid
+term_R = [50, 150, 255]    # Bright Alert Orange
+term_G = [255, 230, 100]    # Neon Encom Blue
+term_Y = [255, 255, 180]    # Bright Data
+term_B = [255, 180, 100]    # High-Bandwidth Blue
+term_M = [220, 150, 255]    # System Magenta
+term_C = [255, 255, 200]    # Pure Cyan
+term_W = [255, 255, 255]    # Master Control (Bright White)
+
+[UI]
+# Border: El icónico azul neón de las interfaces de Kevin Flynn
+border_color = [255, 200, 80]
+# Background: El vacío del Grid
+background_color = [15, 5, 2]

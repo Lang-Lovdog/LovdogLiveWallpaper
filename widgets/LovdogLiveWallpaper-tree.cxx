@@ -42,8 +42,9 @@ std::set<std::string> parse_list(std::string list, bool &special_0, bool &specia
 }
 
 std::string truncate_name(std::string name, size_t max_len) {
-    if (name.length() <= max_len) return name;
-    return name.substr(0, max_len - 3) + "...";
+    if (name.length() <= max_len) name=name+std::string(max_len-name.length(), ' ');
+    else name=name.substr(0, max_len - 3) + "...";
+    return name;
 }
 
 std::string get_icon(const fs::directory_entry& entry, const IconMap& icon_map) {
@@ -142,7 +143,7 @@ void collect_tree(const fs::path& path, const IconMap& icon_map, const TreeConfi
         else if (icon == ICON_EXEC) line << "\033[32m";
         else line << "\033[37m";
 
-        line << icon << truncate_name(entry.path().filename().string(), 20) << "\033[0m";
+        line << icon << truncate_name(entry.path().filename().string(), cfg.line_max_width) << "\033[0m";
         
         buffer.push_back(line.str());
 

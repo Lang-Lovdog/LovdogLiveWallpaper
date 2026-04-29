@@ -1,0 +1,30 @@
+# Lovdog Live Wallpaper - Theme Configuration
+# Theme: Cyberpunk "Arasaka-Glitch" (16-bit ANSI)
+# Format: [B, G, R] for OpenCV direct mapping
+
+[COLORS]
+# --- Normal Palette (ANSI 0-7) ---
+term_k = [20, 10, 15]      # Deep Void (Black)
+term_r = [50, 0, 255]      # Neon Red
+term_g = [80, 255, 0]      # Radioactive Green
+term_y = [0, 220, 255]     # Electric Yellow
+term_b = [255, 50, 0]      # Laser Blue
+term_m = [255, 0, 255]     # Hot Magenta
+term_c = [255, 255, 0]     # Cyber Cyan
+term_w = [200, 200, 200]   # Platinum Gray (White)
+
+# --- Bright Palette (ANSI 8-15) ---
+term_K = [60, 40, 50]      # Muted Purple (Bright Black/Gray)
+term_R = [100, 100, 255]   # Soft Pink/Red
+term_G = [180, 255, 100]   # Neon Lime
+term_Y = [150, 240, 255]   # Pale Gold
+term_B = [255, 150, 100]   # Sky Blue
+term_M = [255, 120, 255]   # Neon Pink
+term_C = [255, 255, 150]   # Electric Teal
+term_W = [255, 255, 255]   # Pure Signal (Bright White)
+
+[UI]
+# Border: A sharp Cyan for that "HUD" feel
+border_color = [255, 255, 0]
+# Background: Very dark purple-black
+background_color = [15, 5, 10]

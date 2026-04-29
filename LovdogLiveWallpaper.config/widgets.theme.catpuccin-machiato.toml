@@ -1,0 +1,30 @@
+# Lovdog Live Wallpaper - Theme Configuration
+# Catppuccin Macchiato (BGR format for OpenCV)
+# Archivo: ~/.config/LovdogLiveWallpaper/widgets.theme.toml
+
+[COLORS]
+# Colores Base (Normal)
+term_k = [54, 36, 30]    # Surface 1 (Black)
+term_r = [147, 131, 237]  # Red
+term_g = [158, 221, 166]  # Green
+term_y = [174, 233, 249]  # Yellow
+term_b = [240, 186, 138]  # Blue
+term_m = [223, 196, 245]  # Pink (Magenta)
+term_c = [190, 245, 145]  # Teal (Cyan)
+term_w = [234, 209, 202]  # Subtext 1 (White)
+
+# Colores Bright (ANSI 8-15)
+term_K = [73, 58, 49]    # Surface 2
+term_R = [147, 131, 237]  # Red Bright
+term_G = [158, 221, 166]  # Green Bright
+term_Y = [174, 233, 249]  # Yellow Bright
+term_B = [240, 186, 138]  # Blue Bright
+term_M = [223, 196, 245]  # Pink Bright
+term_C = [190, 245, 145]  # Teal Bright
+term_W = [245, 224, 202]  # Text (Pure White)
+
+[UI]
+# Color para bordes de widgets (Lavender)
+border_color = [45, 180, 83]
+# Color de fondo por defecto (Base)
+background_color = [36, 0, 36]

@@ -55,8 +55,8 @@ while [ -f "$file_lock" ]; do
   ( ./player_widget > "${widget_prefix}_player" 2>/dev/null ) &
   ( todo > "${widget_prefix}_todo" 2>/dev/null ) &
 
-  pgrep -x llw-sens >/dev/null || (./llw-sensors > "${widget_prefix}_sensors" 2>/dev/null )&
-  pgrep -x llw-tree >/dev/null || (./llw-tree /tmp/tree_dir -lx .tex,.pdf,.csv,.py -c 30 -a -D 200 -s -w 40 -l > "${widget_prefix}_tree" 2>/dev/null )&
+  pgrep -x llw-sensors >/dev/null || (./llw-sensors > "${widget_prefix}_sensors" 2>/dev/null )&
+  pgrep -x llw-tree >/dev/null || (./llw-tree /tmp/tree_dir -lx .tex,.pdf,.csv,.py -d 5 -c 30 -a -D 250 -s -w 40 -l > "${widget_prefix}_tree" 2>/dev/null )&
   
   (
     out1=$(./get_wttr)
