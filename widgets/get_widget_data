@@ -33,7 +33,7 @@ prepare_fifo() {
 #### DENTRO DEL FOR, INTEGRAR EL ID DEL WIDGET ####
 
 # Inicializar FIFOs y evitar bloqueos
-for w in khal todo wttr1 wttrin sensors notibash player; do
+for w in khal todo wttr1 wttrin sensors notibash player tree; do
     pipe="${widget_prefix}_$w"
     prepare_fifo "$pipe"
     # Abrimos un descriptor de lectura persistente en segundo plano 
@@ -55,7 +55,8 @@ while [ -f "$file_lock" ]; do
   ( ./player_widget > "${widget_prefix}_player" 2>/dev/null ) &
   ( todo > "${widget_prefix}_todo" 2>/dev/null ) &
 
-  pgrep -x llw-sensors >/dev/null || (./llw-sensors > "${widget_prefix}_sensors" 2>/dev/null )&
+  pgrep -x llw-sens >/dev/null || (./llw-sensors > "${widget_prefix}_sensors" 2>/dev/null )&
+  pgrep -x llw-tree >/dev/null || (./llw-tree /tmp/tree_dir -lx .tex,.pdf,.csv,.py -c 30 -a -D 200 -s -w 40 -l > "${widget_prefix}_tree" 2>/dev/null )&
   
   (
     out1=$(./get_wttr)

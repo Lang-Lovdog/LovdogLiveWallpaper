@@ -2,6 +2,8 @@
 #include <fstream>
 #include <sensors/sensors.h>
 #include <string>
+#include <sys/statvfs.h>
+#include <sstream>
 // #include <algorithm> // Necesario para std::max_element si escalas dinámicamente
 #include "LovdogLiveWallpaper-sensors.hxx"
 #define GRAPH_HEIGHT 6
@@ -11,6 +13,7 @@ const size_t MAX_HISTORY = 40;
 static float_v global_cpu_history;
 static float_v global_temp_history(MAX_HISTORY, 0.0f);
 static float_v global_load_history(MAX_HISTORY, 0.0f);
+static float_v global_ram_history (MAX_HISTORY, 0.0f);
 
 #ifdef BUILDING_STANDALONE
     size_t utf8_length(const std::string& str) {
@@ -254,6 +257,52 @@ std::string draw_block_histogram(const std::vector<float>& history, std::string 
     return box;
 }
 
+std::string draw_aligned_progress_bar(float percentage, std::string label, size_t max_width, int bar_width) {
+    std::string output = "\033[97m" + label;
+    
+    // Añadimos espacios para que todos los "[" empiecen en la misma columna
+    size_t current_len = utf8_length(label);
+    if (current_len < max_width) {
+        output += std::string(max_width - current_len, ' ');
+    }
+    
+    output += " [";
+    
+    // Dibujamos la barra (usando tu lógica de colores ANSI 31-37)
+    int filled_len = static_cast<int>((percentage / 100.0f) * bar_width);
+    for (int i = 0; i < bar_width; ++i) {
+        if (i < filled_len) {
+            if (percentage < 80) output += "\033[32m█";      // Verde
+            else if (percentage < 95) output += "\033[33m█"; // Amarillo
+            else output += "\033[31m█";                      // Rojo
+        } else {
+            output += "\033[90m░"; // Fondo (Gris oscuro)
+        }
+    }
+    
+    output += "\033[97m] " + std::to_string((int)percentage) + "%\033[0m";
+    return output;
+}
+
+std::string draw_progress_bar(float percentage, std::string label, int width) {
+    std::string bar = "\033[97m" + label + " [";
+    int filled_len = static_cast<int>((percentage / 100.0f) * width);
+    
+    for (int i = 0; i < width; ++i) {
+        if (i < filled_len) {
+            // Color degradado simple: Verde -> Amarillo -> Rojo
+            if (percentage < 70) bar += "\033[32m█";
+            else if (percentage < 90) bar += "\033[33m█";
+            else bar += "\033[31m█";
+        } else {
+            bar += "\033[90m░"; // Fondo tenue
+        }
+    }
+    
+    bar += "\033[97m] " + std::to_string((int)percentage) + "%\033[0m";
+    return bar;
+}
+
 std::string draw_braille_histogram(const std::vector<float>& history, std::string label, float max_val) {
     if (history.empty()) return "";
     size_t visual_len = utf8_length(label);
@@ -382,10 +431,68 @@ int get_battery_level() {
     return capacity;
 }
 
+float get_ram_usage() {
+    std::ifstream file("/proc/meminfo");
+    if (!file.is_open()) return 0.0f;
+
+    std::string line;
+    unsigned long total = 0, available = 0;
+    int found = 0;
+
+    while (std::getline(file, line) && found < 2) {
+        if (line.compare(0, 9, "MemTotal:") == 0) {
+            std::stringstream ss(line.substr(9));
+            ss >> total;
+            found++;
+        } else if (line.compare(0, 13, "MemAvailable:") == 0) {
+            std::stringstream ss(line.substr(13));
+            ss >> available;
+            found++;
+        }
+    }
+    
+    if (total == 0) return 0.0f;
+    return 100.0f * (1.0f - (static_cast<float>(available) / static_cast<float>(total)));
+}
+
+float get_disk_usage(const char* path) {
+    struct statvfs stat;
+    if (statvfs(path, &stat) != 0) return -1.0f;
+
+    // bavail son los bloques libres para usuarios no privilegiados
+    // blocks es el tamaño total
+    unsigned long long total = stat.f_blocks * stat.f_frsize;
+    unsigned long long free = stat.f_bavail * stat.f_frsize;
+    unsigned long long used = total - free;
+
+    return 100.0f * (static_cast<float>(used) / static_cast<float>(total));
+}
+
+floatstr_v get_all_disks_usage() {
+    floatstr_v disks;
+    std::ifstream file("/proc/mounts");
+    std::string line, device, path, type;
+
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        ss >> device >> path >> type;
+
+        // Filtramos para quedarnos con discos reales (/dev/sdX, /dev/nvmeX, /dev/mapper/X)
+        if (device.compare(0, 5, "/dev/") == 0) {
+            float usage = get_disk_usage(path.c_str());
+            if (usage >= 0) {
+                disks.push_back({"  " + path, usage});
+            }
+        }
+    }
+    return disks;
+}
+
 SysStats get_system_stats() {
     SysStats stats;
     static float_v global_temp_history(MAX_HISTORY, 0.0f);
     static float_v global_load_history(MAX_HISTORY, 0.0f);
+    static float_v global_ram_history (MAX_HISTORY, 0.0f);
     stats.battery = get_battery_level();
 
     if (sensors_init(NULL) == 0) {
@@ -419,9 +526,19 @@ SysStats get_system_stats() {
             global_cpu_history.erase(global_cpu_history.begin());
         }
     }
+
+
+    stats.ram_usage = get_ram_usage();
+
+    // Actualizar historial de RAM
+    global_ram_history.erase(global_ram_history.begin());
+    global_ram_history.push_back(stats.ram_usage);
+
+    // Asignar a la estructura
+    stats.ram_history = global_ram_history;
     
     // Copiamos el historial a la estructura para que main pueda usarlo
-    stats.cpu_history = global_cpu_history;
+    stats.cpu_temp_history = global_cpu_history;
     stats.cpu_usage = get_cpu_usage();
 
     // Actualizar historial de Temp
@@ -432,10 +549,53 @@ SysStats get_system_stats() {
     global_load_history.erase(global_load_history.begin());
     global_load_history.push_back(stats.cpu_usage);
 
-    stats.cpu_history = global_temp_history;
-    stats.load_history = global_load_history;
+    stats.cpu_temp_history = global_temp_history;
+    stats.cpu_load_history = global_load_history;
+
+    stats.storage_info = get_all_disks_usage();
+    
+    // Primero encontramos el nombre más largo
+    for (const auto& disk : stats.storage_info) {
+        size_t current_len = utf8_length(disk.first);
+        if (current_len > stats.storage_max_label_len) {
+            stats.storage_max_label_len = current_len;
+        }
+    }
 
     return stats;
+}
+
+std::vector<std::string> split_lines(const std::string& str) {
+    std::vector<std::string> lines;
+    std::stringstream ss(str);
+    std::string line;
+    while (std::getline(ss, line)) {
+        lines.push_back(line);
+    }
+    return lines;
+}
+
+std::string merge_horizontal(const std::string& left_block, const std::string& right_block, int gap = 4) {
+    std::vector<std::string> left = split_lines(left_block);
+    std::vector<std::string> right = split_lines(right_block);
+    
+    std::string result = "";
+    size_t max_rows = std::max(left.size(), right.size());
+    std::string spacing(gap, ' ');
+
+    for (size_t i = 0; i < max_rows; ++i) {
+        // Si el bloque izquierdo es más corto, rellenamos con espacios (necesitas saber el ancho visual)
+        if (i < left.size()) {
+            result += left[i];
+        }
+        
+        // Aquí es donde el padding que calculamos antes es vital para que la columna derecha no baile
+        if (i < right.size()) {
+            result += spacing + right[i];
+        }
+        result += "\n";
+    }
+    return result;
 }
 
 // --- BLOQUE DE PRUEBA ---
@@ -449,11 +609,33 @@ int main() {
             std::cout << "\033[2J\033[H"; 
         #endif
         
-        std::cout << "  CPU Metrics" << std::endl;
-        std::cout << draw_block_histogram_color(s.load_history, "Load " + std::to_string((int)s.cpu_usage) + "%", 100.0f) << std::endl;
-        std::cout << draw_block_histogram_color(s.cpu_history, "Temp " + std::to_string((int)s.cpu_temp) + "°C", 100.0f) << std::endl;
-        
-        std::cout << "  Battery: " << s.battery << "%" << std::endl;
+//        std::cout << "  CPU Metrics" << std::endl;
+//        std::cout << draw_block_histogram_color(s.cpu_load_history, "Load " + std::to_string((int)s.cpu_usage) + "%", 100.0f);
+//        std::cout << draw_block_histogram_color(s.cpu_temp_history, "Temp " + std::to_string((int)s.cpu_temp) + "°C", 100.0f) << std::endl;
+//        std::cout << draw_block_histogram_color(s.ram_history, "RAM Usage " + std::to_string((int)s.ram_usage) + "%", 100.0f) << std::endl;
+//        std::cout << draw_progress_bar(s.battery,"  Battery: ", 20) << "\n" << std::endl;
+//        s.storage_max_label_len = std::max(s.storage_max_label_len, std::string("  Battery").length());
+//        for (const auto& disk : s.storage_info)
+//            std::cout << draw_aligned_progress_bar(disk.second, disk.first, s.storage_max_label_len, 20) << std::endl;
+
+          // 1. Preparamos el bloque de la IZQUIERDA (Histogramas altos)
+          std::string left_column = "";
+          left_column += draw_block_histogram_color(s.cpu_load_history, "  CPU Load", 100.0f);
+          left_column += draw_block_histogram_color(s.cpu_temp_history, "  CPU Temp", 100.0f);
+          left_column += draw_block_histogram_color(s.ram_history, "  RAM Load", 100.0f);
+
+          // 2. Preparamos el bloque de la DERECHA (Status bars cortas)
+          std::string right_column = "\n"; // Un poco de offset superior si quieres
+          s.storage_max_label_len = std::max(s.storage_max_label_len, s.battery_label.length());
+          right_column += draw_aligned_progress_bar(s.battery, s.battery_label, s.storage_max_label_len, 15) + "\n";
+
+          for (const auto& disk : s.storage_info) {
+              right_column += draw_aligned_progress_bar(disk.second, disk.first, s.storage_max_label_len, 15) + "\n";
+          }
+
+          // 3. Fusionamos y mostramos
+          std::cout << merge_horizontal(left_column, right_column, 6);
+
         std::flush(std::cout);
         usleep(500000); 
     }
