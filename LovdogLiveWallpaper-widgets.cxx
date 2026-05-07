@@ -413,14 +413,14 @@ void update_widgets_layout(cv::Mat& frame, const WallpaperConfig& config, Runtim
                     
                     int bl = 0;
                     cv::Size sz = config.ft2->getTextSize(segment.text, config.widget_font_px, -1, &bl);
-                    current_line_width += sz.width;
+                    current_line_width += sz.width + config.widget_font_sh;
                 }
                 
                 if (current_line_width > max_w) max_w = current_line_width;
             }
 
-            el->box_width = max_w + 20; // Padding horizontal
-            el->box_height = (el->widget_color.size() * config.widget_font_px) + 15; // Padding vertical para INVERT
+            el->box_width = max_w + config.widget_box_sw; // Padding horizontal
+            el->box_height = el->widget_color.size() * (config.widget_font_px  + config.widget_font_sv) + config.widget_font_sv; // Padding vertical para INVERT
             
             if (el->box_height > max_row_h) max_row_h = el->box_height;
             total_row_w += el->box_width;
@@ -483,11 +483,11 @@ void draw_ansi_widget(cv::Mat& frame, const WidgetElement& el, const WallpaperCo
     cv::rectangle(frame, roi, el.border_color, 1);
 
     // 4. Renderizado de segmentos (Igual al standalone)
-    int line_h = config.widget_font_px; // Un poco de aire entre líneas
-    int ty = el.box_y + config.widget_font_px; 
+    int line_h = config.widget_font_px + config.widget_font_sv; // Un poco de aire entre líneas
+    int ty = el.box_y + config.widget_font_px + config.widget_font_sv; 
 
     for (const auto& line : el.widget_color) {
-        int tx = el.box_x + 10;
+        int tx = el.box_x + config.widget_font_sh;
         for (const auto& segment : line) {
             if (segment.text.empty()) continue;
 
@@ -498,7 +498,7 @@ void draw_ansi_widget(cv::Mat& frame, const WidgetElement& el, const WallpaperCo
             if (segment.attributes & TermColor::INVERT) {
                 // Dibujar el bloque sólido
                 // ty es la baseline, restamos la altura de la fuente para el top del rect
-                cv::Rect bg_rect(tx, ty - config.widget_font_px, sz.width, config.widget_font_px + bl);
+                cv::Rect bg_rect(tx, ty - config.widget_font_px, sz.width + config.widget_font_sh, config.widget_font_px + bl);
                 
                 // IMPORTANTE: Dibujar sobre 'frame' (que ya tiene el fondo mezclado)
                 cv::rectangle(frame, bg_rect, fg_color, cv::FILLED);

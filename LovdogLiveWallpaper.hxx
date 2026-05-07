@@ -118,6 +118,8 @@ struct WallpaperConfig {
     float        widget_x_prop             = 0.05f                        ;
     float        widget_y_prop             = 0.05f                        ;
     float        widget_font_px            = 12.0f                        ;
+    int          widget_font_sv            = 0                            ;
+    int          widget_font_sh            = 0                            ;
     std::string  widget_font               = ""                           ;
     int          widget_text_border        = 2                            ;
     int          widget_box_w              = 0                            ;
@@ -147,6 +149,8 @@ struct WallpaperConfig {
     cv::Scalar   cava_rgb_min              = cv::Scalar(000, 000, 000)    ; // Color base
     cv::Scalar   cava_rgb_max              = cv::Scalar(255, 255, 255)    ; // Color fin del rango
     bool         cava_random_color         = false                        ;
+    float        cava_transparency         = 0.6                          ;
+    float        cava__border_transparency = 0.8                          ;
     int          delay_compensation        = 1                            ;
     int          rn_type                   = SCREEEN_FILL                 ;
     size_t       in_type                   = TYPE_NONE                    ;

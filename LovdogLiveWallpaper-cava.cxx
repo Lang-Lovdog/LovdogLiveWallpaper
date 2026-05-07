@@ -150,16 +150,16 @@ void get_cava_bars(cv::Mat& barframe, cv::Rect& roi_cava, const WallpaperConfig&
         for (int i = 0; i < num_bars; i++) {
             int val = (heights[i] * roi_cava.height) / 255;
             draw_adaptive_gradient_bar(bars_mat, i * bar_w, roi_cava.height - val, bar_w - 2, val, avgColor);
-            cv::addWeighted(barframe(roi_cava), 1.0, bars_mat, 0.8, 0.0, barframe(roi_cava));
+            cv::addWeighted(barframe(roi_cava), 1.0, bars_mat, config.cava_transparency, 0.0, barframe(roi_cava));
         }
     } else if (options.use_cava_range) {
         draw_bar_gradient(bars_mat, config, num_bars, roi_cava.height, heights, bar_w);
         // 5. Mezcla final
-        cv::add(barframe(roi_cava), bars_mat, barframe(roi_cava));
+        cv::addWeighted(barframe(roi_cava), 1.0, bars_mat, config.cava_transparency, 0.0, barframe(roi_cava));
     } else {
         draw_bar(bars_mat, config, num_bars, roi_cava.height, heights, bar_w); 
         // 5. Mezcla final
-        cv::add(barframe(roi_cava), bars_mat, barframe(roi_cava));
+        cv::addWeighted(barframe(roi_cava), 1.0, bars_mat, config.cava_transparency, 0.0, barframe(roi_cava));
     }
 
 }

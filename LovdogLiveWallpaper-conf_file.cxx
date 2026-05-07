@@ -57,6 +57,8 @@ void load_main_config(WallpaperConfig& config, RuntimeOptions& options) {
             
             config.widget_background_opacity = (*w)["bg_opacity"].value_or(0.5f);
             config.widget_background_dimming = (*w)["bg_dimming"].value_or(0.05f);
+            config.widget_font_sv = (*w)["font_sv"].value_or(0);
+            config.widget_font_sh = (*w)["font_sh"].value_or(0);
         }
 
         std::cout << "[LLW] Main configuration loaded (Bars: " << config.cava_num_bars << ")." << std::endl;

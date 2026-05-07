@@ -31,9 +31,9 @@ prepare_fifo() {
 }
 
 #### DENTRO DEL FOR, INTEGRAR EL ID DEL WIDGET ####
-
+#player  tree
 # Inicializar FIFOs y evitar bloqueos
-for w in khal todo wttr1 wttrin sensors notibash player tree; do
+for w in khal todo wttrin sensors notibash; do
     pipe="${widget_prefix}_$w"
     prepare_fifo "$pipe"
     # Abrimos un descriptor de lectura persistente en segundo plano 
@@ -52,17 +52,17 @@ echo "Widgets iniciados..."
 while [ -f "$file_lock" ]; do
   # Ejecutar actualizaciones
   ( ./khal_widget > "${widget_prefix}_khal" 2>/dev/null ) &
-  ( ./player_widget > "${widget_prefix}_player" 2>/dev/null ) &
+#  ( ./player_widget > "${widget_prefix}_player" 2>/dev/null ) &
   ( todo > "${widget_prefix}_todo" 2>/dev/null ) &
 
   pgrep -x llw-sensors >/dev/null || (./llw-sensors > "${widget_prefix}_sensors" 2>/dev/null )&
-  pgrep -x llw-tree >/dev/null || (./llw-tree /tmp/tree_dir -lx .tex,.pdf,.csv,.py -d 5 -c 30 -a -D 250 -s -w 40 -l > "${widget_prefix}_tree" 2>/dev/null )&
+#  pgrep -x llw-tree >/dev/null || (./llw-tree /tmp/tree_dir -lx .tex,.pdf,.csv,.py -d 5 -c 30 -a -D 250 -s -w 40 -l > "${widget_prefix}_tree" 2>/dev/null )&
   
   (
     out1=$(./get_wttr)
-    out2=$(curl -s 'wttr.in/?T&3')
+#    out2=$(curl -s 'wttr.in/?T&3')
     [[ -n "$out1" ]] && echo "$out1" > "${widget_prefix}_wttrin"
-    [[ -n "$out2" ]] && echo "$out2" >> "${widget_prefix}_wttrin"
+#    [[ -n "$out2" ]] && echo "$out2" >> "${widget_prefix}_wttrin"
   ) &
 
 
