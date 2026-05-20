@@ -18,6 +18,7 @@ void load_main_config(WallpaperConfig& config, RuntimeOptions& options) {
             options.use_cava_range    = (*cava)["color_range"].value_or(false);
             options.use_cava_adaptive = (*cava)["color_adaptive"].value_or(false);
             options.enable_cava       = (*cava)["enable"].value_or(false);
+            config.cava_transparency  = (*cava)["transparency"].value_or(0.5f);
 
 
             // Cargar color base de CAVA si existe
