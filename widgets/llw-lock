@@ -1,50 +1,50 @@
 #!/bin/bash
 
-NOTIBASH_FIFO="/tmp/lovdog_live_wallpaper/w_fifo_notibash"
+#NOTIBASH_FIFO="/tmp/lovdog_live_wallpaper/w_fifo_notibash"
 
 # Archivo temporal para los IDs de las ventanas
-WIN_LIST="/tmp/llw_locked_windows.list"
+#WIN_LIST="/tmp/llw_locked_windows.list"
 
 # 1. Obtener el ID de la ventana de LovdogLiveWallpaper (para NO ocultarla)
 # Asumiendo que tu ventana tiene un nombre o clase específica
 LLW_WID=$(xdotool search --name "LovdogLiveWallpaper" | head -n 1)
 
 # 2. Obtener ventanas del desktop actual que NO sean el fondo
-CURRENT_DESKTOP=$(xdotool get_desktop)
-xdotool search --desktop "$CURRENT_DESKTOP" --onlyvisible --class --invert "kitty" > "${WIN_LIST}.raw"
+#CURRENT_DESKTOP=$(xdotool get_desktop)
+#xdotool search --desktop "$CURRENT_DESKTOP" --onlyvisible --class --invert "kitty" > "${WIN_LIST}.raw"
 
 
 # Filtrar el fondo de pantalla de la lista para no hacerle unmap
 #grep -v "$LLW_WID" "$WIN_LIST.raw" > "$WIN_LIST"
 
 # 3. Unmap de las ventanas de trabajo
-while read -r WID; do
-    xdotool windowunmap "$WID"
-done < "${WIN_LIST}.raw"
+#while read -r WID; do
+#    xdotool windowunmap "$WID"
+#done < "${WIN_LIST}.raw"
 
 # 4. Bloquear la sesión (MODO NO-FORK)
 # El script se detendrá aquí hasta que te pongas la contraseña correctamente
-printf ".\nBloqueando...\n.\n" > "$NOTIBASH_FIFO"
-printf "\033[97m┌─────────────────────────────────────────────────────┐\033[0m\n" >> "$NOTIBASH_FIFO"
-printf "\033[31m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Rojo
-printf "\033[31m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Rojo
-printf "\033[31m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Rojo
-printf "\033[31m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Rojo
-printf "\033[31m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Rojo
-printf "\033[31m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Rojo
-printf "\033[33m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Amarillo
-printf "\033[33m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Amarillo
-printf "\033[33m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Amarillo
-printf "\033[33m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Amarillo
-printf "\033[33m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Amarillo
-printf "\033[33m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Amarillo
-printf "\033[32m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Verde
-printf "\033[32m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Verde
-printf "\033[32m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Verde
-printf "\033[32m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Verde
-printf "\033[32m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Verde
-printf "\033[32m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Verde
-printf "\033[97m└─────────────────────────────────────────────────────┘\033[0m\n" >> "$NOTIBASH_FIFO"
+#printf ".\nBloqueando...\n.\n" > "$NOTIBASH_FIFO"
+#printf "\033[97m┌─────────────────────────────────────────────────────┐\033[0m\n" >> "$NOTIBASH_FIFO"
+#printf "\033[31m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Rojo
+#printf "\033[31m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Rojo
+#printf "\033[31m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Rojo
+#printf "\033[31m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Rojo
+#printf "\033[31m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Rojo
+#printf "\033[31m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Rojo
+#printf "\033[33m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Amarillo
+#printf "\033[33m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Amarillo
+#printf "\033[33m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Amarillo
+#printf "\033[33m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Amarillo
+#printf "\033[33m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Amarillo
+#printf "\033[33m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Amarillo
+#printf "\033[32m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Verde
+#printf "\033[32m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Verde
+#printf "\033[32m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Verde
+#printf "\033[32m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Verde
+#printf "\033[32m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Verde
+#printf "\033[32m│█████████████████████████████████████████████████████│\033[0m\n" >> "$NOTIBASH_FIFO" # Verde
+#printf "\033[97m└─────────────────────────────────────────────────────┘\033[0m\n" >> "$NOTIBASH_FIFO"
 
 #i3lock -n \
 #    --color=00000000 \
@@ -79,17 +79,18 @@ i3lock -n -f -e \
     --wrong-size=25 \
     --layout-size=25 \
     \
-    --ind-pos="x+w/2+7:y+164"
+    --ind-pos="x+w/2+7:y+164" \
+    -p default
 
-printf ".\nDesbloqueando...\n." > "$NOTIBASH_FIFO"
+#printf ".\nDesbloqueando...\n." > "$NOTIBASH_FIFO"
 
 # 5. Re-mapear las ventanas al regresar
-if [ -f "${WIN_LIST}.raw" ]; then
-    printf "\nRemapeando Ventanas\n" >> "$NOTIBASH_FIFO"
-    while read -r WID; do
-        xdotool windowmap "$WID"
-    done < "${WIN_LIST}.raw"
+#if [ -f "${WIN_LIST}.raw" ]; then
+    #printf "\nRemapeando Ventanas\n" >> "$NOTIBASH_FIFO"
+#    while read -r WID; do
+#        xdotool windowmap "$WID"
+#    done < "${WIN_LIST}.raw"
     
     # Limpieza
-    rm "$WIN_LIST.raw" # "$WIN_LIST"
-fi
+#    rm "$WIN_LIST.raw" # "$WIN_LIST"
+#fi
